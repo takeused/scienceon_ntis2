@@ -131,7 +131,10 @@ export default {
       params.set('apprvKey', apprvKey);
 
       const keyword = url.searchParams.get('query') || url.searchParams.get('SRWR') || url.searchParams.get('searchWord');
-      if (keyword) params.set('query', keyword);
+      if (keyword) {
+        params.set('SRWR', keyword);
+        params.set('query', keyword);
+      }
 
       // 컬렉션 보정
       let collection = url.searchParams.get('collection') || '';

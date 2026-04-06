@@ -1681,7 +1681,8 @@
         collection: collection,
         displayCnt: rowCount,
         startPosition: startPosition,
-        query: query,      // NTIS API 실제 파라미터명 (PDF 표에는 SRWR이나 실제 HTTP param은 query)
+        SRWR: query,       // NTIS 최신 API 검색 파라미터 (PDF 공식 매뉴얼 기준)
+        query: query,      // 기존 하위 호환성용 병행 전송
         searchRnkn: 'Y',
         naviCount: 5
       });

@@ -369,10 +369,10 @@ const server = http.createServer(async (req, res) => {
     const params = new URLSearchParams();
     params.set('apprvKey', apprvKey);
 
-    // PDF 24 표에는 SRWR로 기재되어 있으나 실제 NTIS API HTTP 파라미터명은 'query'
-    // curl 테스트 결과: SRWR=나노 → ORIGINALQUERY 비어있음(1.2M건), query=나노 → 정상검색(112K건)
+    // PDF 24 표에는 SRWR로 기재되어 있으나 이전에는 'query'로 동작. 최신 서버에서는 SRWR 병행 전송 필요
     const keyword = q.query || SRWR || searchWord;
     if (keyword) {
+      params.set('SRWR', keyword);
       params.set('query', keyword);
     }
     
