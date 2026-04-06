@@ -4467,10 +4467,20 @@ Respond ONLY with:
             const perfOrg   = gv('PERFORGNM') || gv('perfOrg') || '';
             const absContent= gv('ABSTRACTCONTENT') || gv('absContent') || gv('ABSTRACT') || '';
 
-            // 최근 8년 이내 과제만 포함
+            // [v2] Step 2: 정책 메타데이터 필터링 (최근 8년 이내 과제 위주)
             const startYr = parseInt(prdStart);
-            const nowYr   = new Date().getFullYear();
-            if (prdStart && startYr < nowYr - 8) continue;
+            const curYr   = new Date().getFullYear();
+            if (prdStart && startYr < curYr - 8) continue;
+
+            // 2-1. 수행기간 필터 (사용자 희망기간 ±1년)
+            const yrs = Math.max(1, parseInt(prdEnd) - parseInt(prdStart) + 1);
+            if (durationYears > 0 && Math.abs(yrs - durationYears) > 1) continue;
+
+            // 2-2. 연구개발단계 필터
+            if (rndPhase && rndPhase !== '전체' && phase && !phase.includes(rndPhase)) continue;
+
+            // 2-3. 사업유형 필터
+            if (bizSect && bizSect !== '전체' && biz && !biz.includes(bizSect)) continue;
 
             // 연간 예산 계산
             let annualBudget = 0;
@@ -4558,11 +4568,13 @@ Research content: "${researchContent}"
 Candidate NTIS projects (index: name | annual budget | period | org):
 ${candidateList}
 
-Select the TOP 5 most similar projects based on:
-- Technical similarity (40%): research goals, core tech, methodology
-- Scope fit (30%): development scale (TRL), team size, output type
-- Budget rationality (20%): cost structure similarity
-- Recency (10%): prefer recent projects
+Select the Top 5 projects most similar to the New Project based on these weighted criteria:
+- Technical similarity (45%): research goals, core technologies, and theoretical methodology
+- Scope/Scale fit (30%): R&D stage (TRL), scale of work, and type of deliverables
+- Recency & Policy fit (15%): proximity to current date (newer is better) and policy context
+- Biz Sector fit (10%): organization type (e.g., 출연(연), 대학, 민간) similarity
+
+Consider ONLY the project name and the generated synopsis for evaluation.
 
 Respond ONLY with:
 {"selected": [
@@ -4674,46 +4686,54 @@ Respond ONLY with:
       ).join('');
 
       document.getElementById('budgetResultContent').innerHTML = `
-        <div style="margin-bottom:1.5rem;">
-          <h3 style="font-size:1.125rem; font-weight:700; color:#111; margin-bottom:0.25rem;">
-            ${escHtml(projName)}
-          </h3>
-          <p style="font-size:0.8125rem; color:#6b7280;">수행기간 ${dYrs}년 기준 | 유사과제 ${budgetRange.n}건 분석</p>
+        <div style="margin-bottom:1.5rem; text-align:center;">
+          <div style="display:inline-block; background:#f5f3ff; color:#7c3aed; font-size:0.75rem; font-weight:700; padding:0.25rem 0.75rem; border-radius:1rem; margin-bottom:0.5rem; border:1px solid #ddd6fe;">PROPOSAL V2 로직 적용</div>
+          <h3 style="font-size:1.25rem; font-weight:800; color:#111; margin-bottom:0.25rem;">${escHtml(projName)}</h3>
+          <p style="font-size:0.8125rem; color:#6b7280;">수행기간 ${dYrs}년 기준 | 분석 대상 유사과제 ${budgetRange.n}건</p>
         </div>
 
-        <div class="budget-kpi-grid">
-          <div class="budget-kpi-card primary">
-            <div class="budget-kpi-label">📌 적정 연간 연구비 (중앙값)</div>
-            <div class="budget-kpi-value">${fmtBudget(budgetRange.median)}</div>
-            <div class="budget-kpi-sub">이상치 영향 최소화</div>
+        <div style="background:linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); border-radius:1.5rem; padding:2rem; margin-bottom:2rem; color:#fff; text-align:center; box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.3);">
+          <p style="font-size:0.875rem; font-weight:500; opacity:0.9; margin-bottom:0.5rem;">연간 적정 연구비 (중앙값 기준)</p>
+          <h2 style="font-size:3rem; font-weight:900; margin-bottom:1rem; letter-spacing:-0.025em;">${fmtBudget(budgetRange.median)}</h2>
+          <div style="display:inline-flex; gap:0.5rem; align-items:center; background:rgba(255,255,255,0.2); backdrop-filter:blur(4px); padding:0.6rem 1.2rem; border-radius:2rem; font-size:0.925rem; font-weight:700; border:1px solid rgba(255,255,255,0.3);">
+            <iconify-icon icon="solar:shield-check-bold-duotone" style="font-size:1.1rem;"></iconify-icon>
+            권장 예산 범위: ${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}
           </div>
+        </div>
+
+        <div class="budget-kpi-grid" style="margin-bottom:2rem;">
           <div class="budget-kpi-card">
             <div class="budget-kpi-label">🤖 AI 유사도 가중 평균</div>
             <div class="budget-kpi-value">${fmtBudget(budgetRange.weightedAvg)}</div>
-            <div class="budget-kpi-sub">유사도 높은 과제 반영</div>
+            <div class="budget-kpi-sub">상위 유사과제 비중 반영</div>
           </div>
           <div class="budget-kpi-card">
-            <div class="budget-kpi-label">📊 제안 범위 (Q1~Q3)</div>
-            <div class="budget-kpi-value" style="font-size:1.1rem;">${fmtBudget(budgetRange.q1)}<br><span style="font-size:0.8rem;color:#9ca3af;">~</span><br>${fmtBudget(budgetRange.q3)}</div>
-            <div class="budget-kpi-sub">협상 가능 밴드</div>
+            <div class="budget-kpi-label">📅 총 연구비 (${dYrs}년)</div>
+            <div class="budget-kpi-value">${fmtBudget(totalMedian)}</div>
+            <div class="budget-kpi-sub">중앙값 × ${dYrs}년 기준</div>
           </div>
           <div class="budget-kpi-card">
-            <div class="budget-kpi-label">📅 총 연구비 환산 (${dYrs}년)</div>
-            <div class="budget-kpi-value" style="font-size:1.1rem;">${fmtBudget(totalMin)}<br><span style="font-size:0.8rem;color:#9ca3af;">~</span><br>${fmtBudget(totalMax)}</div>
-            <div class="budget-kpi-sub">Q1×${dYrs}년 ~ Q3×${dYrs}년</div>
+            <div class="budget-kpi-label">📊 분석 표본 범위</div>
+            <div class="budget-kpi-value" style="font-size:1.1rem;">${fmtBudget(budgetRange.min)}<br>~ ${fmtBudget(budgetRange.max)}</div>
+            <div class="budget-kpi-sub">수집된 유효 과제 범위</div>
           </div>
         </div>
 
-        <div style="background:#eff6ff; border:1px solid #dbeafe; border-radius:10px; padding:1rem; margin-bottom:1.5rem; font-size:0.8125rem; color:#1e40af;">
-          <strong>💡 해석 가이드:</strong>
-          중앙값(${fmtBudget(budgetRange.median)}/년)을 기준으로 예산을 편성하되,
-          Q1~Q3 범위(${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}/년) 내에서 과제 특성에 맞게 조정하세요.
-          ${budgetRange.n}건의 유사 NTIS 과제 데이터를 IQR 방식으로 이상치 제거 후 분석한 결과입니다.
+        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:1rem; padding:1.25rem; margin-bottom:2rem; font-size:0.875rem; line-height:1.6; color:#4b5563;">
+          <h4 style="font-size:0.9rem; font-weight:800; color:#111827; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+            <iconify-icon icon="solar:lightbulb-bold-duotone" style="color:#f59e0b;"></iconify-icon>
+            산출 근거 및 해석 가이드
+          </h4>
+          최근 8년 내 유사 연구 개발 단계 및 사업 유형의 NTIS 과제 ${budgetRange.n}건을 분석했습니다. 
+          중앙값인 <strong>${fmtBudget(budgetRange.median)}</strong>원을 최적 기준으로 제안하며, 
+          과제 특성에 따라 최대 <strong>${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}</strong> 범위 내에서 조정하는 것이 합리적입니다.
+          (IQR 방식 이상치 제거 및 AI 4차원 유사도 가중치 적용 완료)
         </div>
 
         <div style="margin-bottom:1.5rem;">
-          <h4 style="font-size:0.875rem; font-weight:700; color:#374151; margin-bottom:0.75rem;">
-            📋 선정 유사과제 리스트
+          <h4 style="font-size:1rem; font-weight:800; color:#111827; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+            <iconify-icon icon="solar:ranking-bold-duotone" style="color:#7c3aed;"></iconify-icon>
+            AI 선정 유사과제 리스트 (Top-${selectedItems.length})
           </h4>
           <div style="overflow-x:auto;">
             <table class="budget-table">
