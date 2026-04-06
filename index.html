@@ -4317,6 +4317,38 @@ Respond ONLY with this JSON structure:
       if (lbl) lbl.textContent = label;
     }
 
+    // ── Step 0: 연구내용 시놉시스 생성 (과제명 기반) ──────────────
+    async function generateResearchSynopsis(projName) {
+      if (!STATE.cerebrasKey) {
+        return "과제명 기반 기계적 매칭 (AI 요약 미처리)";
+      }
+      try {
+        const systemPrompt = `You are a Korean R&D expert. Based on the given PROJECT NAME, write a concise technical summary (synopsis) of what this project likely involves.
+Focus on research goals and expected core technologies. 
+Keep it under 80 Korean characters. No preamble.`;
+        const userPrompt = `Project Name: "${projName}"`;
+
+        const resp = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${STATE.cerebrasKey}`,
+          },
+          body: JSON.stringify({
+            model: 'llama3.1-8b',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+            temperature: 0.3,
+            max_tokens: 150,
+          }),
+        });
+        if (!resp.ok) return "AI 요약 생성 실패 (과제명 기반 매칭)";
+        const data = await resp.json();
+        return (data?.choices?.[0]?.message?.content || '').trim().substring(0, 150);
+      } catch (e) {
+        return "AI 연동 오류 (과제명 기반 매칭)";
+      }
+    }
+
     // ── Step 1: AI 키워드 추출 ───────────────────────────────────
     async function extractKeywordsForBudget(projName, researchContent) {
       if (!STATE.cerebrasKey) {
@@ -4710,7 +4742,6 @@ Respond ONLY with:
     // ── 메인 진입점 ───────────────────────────────────────────────
     async function runBudgetEstimation() {
       const projName       = document.getElementById('budgetProjectName').value.trim();
-      const researchContent= document.getElementById('budgetResearchContent').value.trim();
       const durationYears  = parseInt(document.getElementById('budgetDuration').value) || 0;
       const rndPhase       = document.getElementById('budgetRndPhase').value;
       const bizSect        = document.getElementById('budgetBizSect').value;
@@ -4720,11 +4751,7 @@ Respond ONLY with:
         document.getElementById('budgetProjectName').focus();
         return;
       }
-      if (!researchContent) {
-        showToast('핵심 연구내용을 입력해주세요.', 'warning');
-        document.getElementById('budgetResearchContent').focus();
-        return;
-      }
+
       if (!STATE.ntisKey) {
         showToast('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.', 'warning');
         setTimeout(() => openSettings(), 600);
@@ -4745,15 +4772,22 @@ Respond ONLY with:
       setBudgetStep(1);
 
       try {
+        // ── Step 0: AI 연구내용 시놉시스 생성 ──────────────────
+        addBudgetLog('🤖', 'Step 0: 과제명 기반 핵심 연구내용 유추 중...');
+        const aiSynopsis = await generateResearchSynopsis(projName);
+        addBudgetLog('📝', `유추된 연구내용: ${aiSynopsis}`);
+
         // ── Step 1: AI 키워드 추출 ──────────────────────────────
         addBudgetLog('🤖', 'Step 1: AI 키워드 최적화 시작...');
-        const keywords = await extractKeywordsForBudget(projName, researchContent);
+        const keywords = await extractKeywordsForBudget(projName, aiSynopsis);
         addBudgetLog('✅', `추출된 키워드: ${keywords.join(', ')}`);
 
         // ── Step 2: NTIS 과제 수집 + 메타 필터 ─────────────────
         setBudgetStep(2);
         addBudgetLog('📡', 'Step 2: NTIS 과제 데이터 수집 중...');
         let rawItems = await fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect);
+        
+        // 결과가 너무 많거나 0건일 때의 처리 (정박사님 피드백 반영)
         if (rawItems.length === 0) {
           addBudgetLog('⚠️', '키워드 검색 결과가 없습니다. 과제명 핵심어로 재검색을 시도합니다.');
           const fallbackKeywords = [projName]; 
@@ -4776,7 +4810,8 @@ Respond ONLY with:
         // ── Step 4: AI 유사도 평가 ──────────────────────────────
         setBudgetStep(4);
         addBudgetLog('🔬', 'Step 4: AI 4차원 유사도 평가 시작...');
-        const selectedItems = await aiSimilarityEval(projName, researchContent, cleanedItems);
+        // 사용자 입력 대신 생성된 aiSynopsis를 기준으로 평가
+        const selectedItems = await aiSimilarityEval(projName, aiSynopsis, cleanedItems);
 
         // ── Step 5: 최종 예산 산출 ──────────────────────────────
         setBudgetStep(5);
@@ -4835,14 +4870,10 @@ Respond ONLY with:
       <div class="budget-input-group">
         <label class="budget-input-label" for="budgetProjectName">신규과제명 <span>*필수</span></label>
         <input id="budgetProjectName" class="budget-input" type="text" placeholder="예: 지속가능한 도심 홍수 예측 시스템 개발"
-          onkeydown="if(event.key==='Enter'){ event.preventDefault(); document.getElementById('budgetResearchContent').focus(); }">
+          onkeydown="if(event.key==='Enter'){ event.preventDefault(); runBudgetEstimation(); }">
       </div>
 
-      <div class="budget-input-group">
-        <label class="budget-input-label" for="budgetResearchContent">핵심 연구내용 <span>*필수, 100~300자 권장</span></label>
-        <textarea id="budgetResearchContent" class="budget-input" rows="4"
-          placeholder="예: AI 기반 도시 침수 실시간 예측 모델 개발. 레이더·위성 기상데이터와 도시 하수관망 데이터를 융합하여 30분 전 침수 예측 알고리즘을 구현하고 지자체 대응 매뉴얼과 연계하는 시스템을 개발한다."></textarea>
-      </div>
+
 
       <div class="budget-select-group">
         <div>
