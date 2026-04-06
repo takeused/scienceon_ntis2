@@ -4467,16 +4467,10 @@ Respond ONLY with:
 
             const projNm    = gv('ProjectTitle', 'Korean') || gv('PROJNM') || gv('projNm') || '';
             
-            // NTIS 통합검색 API는 보통 '원' 단위로 제공됨 (단위 체크 필요)
-            let rawTot = parseFloat(gv('TotalFunds') || gv('TOTFUND') || '0');
-            let rawGov = parseFloat(gv('GovernmentFunds') || gv('FUNDTHYR') || '0');
-            
-            // 만약 연구비가 지나치게 작으면(예: 1억 미만인데 100만 이하 숫자로 찍히면) '천원' 단위로 간주 후 보정
-            if (rawTot > 0 && rawTot < 1000000) { rawTot *= 1000; rawGov *= 1000; }
+            // NTIS API 연구비 파싱 (원 단위)
+            const totFund  = parseFloat(gv('TotalFunds') || gv('TOTFUND') || '0');
+            const fundThyr = parseFloat(gv('GovernmentFunds') || gv('FUNDTHYR') || '0');
 
-            const totFund   = rawTot;
-            const fundThyr  = rawGov;
-            
             const prdStart  = (gv('ProjectStartYear') || gv('PRDSTART') || '').substring(0, 4);
             const prdEnd    = (gv('ProjectEndYear') || gv('PRDEND') || '').substring(0, 4);
             const phase     = gv('ResearchPhase') || gv('RNDPHASE') || '';
@@ -4484,47 +4478,45 @@ Respond ONLY with:
             const perfOrg   = gv('PerformingOrganization', 'Name') || gv('PERFORGNM') || '';
             const absContent= gv('Abstract') || gv('ABSTRACTCONTENT') || '';
 
-            // [v2] Step 2: 정책 메타데이터 필터링 (최근 8년 이내 과제 위주)
+            // [Step 2] 정책 메타데이터 필터링
             const startYr = parseInt(prdStart);
             const curYr   = new Date().getFullYear();
             if (prdStart && startYr < curYr - 8) continue;
 
-            // 2-1. 수행기간 필터 (사용자 희망기간 ±1년)
-            const yrs = Math.max(1, parseInt(prdEnd) - parseInt(prdStart) + 1);
-            if (durationYears > 0 && Math.abs(yrs - durationYears) > 1) continue;
+            // 수행연수 계산 (기간 정보 있는 경우에만)
+            const hasPeriod = prdStart && prdEnd && !isNaN(parseInt(prdStart)) && !isNaN(parseInt(prdEnd));
+            const projYrs   = hasPeriod ? Math.max(1, parseInt(prdEnd) - parseInt(prdStart) + 1) : 0;
 
-            // 2-2. 연구개발단계 필터
-            if (rndPhase && rndPhase !== '전체' && phase && !phase.includes(rndPhase)) continue;
+            // 수행기간 필터 (사용자 희망기간 ±1년, 기간 정보 없으면 통과)
+            if (durationYears > 0 && hasPeriod && Math.abs(projYrs - durationYears) > 1) continue;
 
-            // 2-3. 사업유형 필터
-            if (bizSect && bizSect !== '전체' && biz && !biz.includes(bizSect)) continue;
+            // 연구개발단계 필터
+            if (rndPhase && rndPhase !== '전체' && rndPhase !== 'ALL' && phase && !phase.includes(rndPhase)) continue;
 
-            // 연간 예산 계산
+            // 사업유형 필터
+            if (bizSect && bizSect !== '전체' && bizSect !== 'ALL' && biz && !biz.includes(bizSect)) continue;
+
+            // ── 연간 예산 산출 (B1+B4 핵심 수정) ──────────────────────
+            // 1순위: totFund / 수행연수 (평균 연간 예산, 가장 신뢰도 높음)
+            // 2순위: fundThyr (당해연도 예산, 연차 편차 있음을 감안)
+            // 기간 정보 없이 totFund만 있으면 연간화 불가 → 제외
             let annualBudget = 0;
-            if (fundThyr > 0) {
+            let budgetSource = '';
+            if (totFund > 0 && hasPeriod) {
+              annualBudget = totFund / projYrs;
+              budgetSource = 'avg';
+            } else if (totFund > 0 && !hasPeriod) {
+              // 기간 미상: 총연구비를 연간화할 수 없으므로 제외
+              continue;
+            } else if (fundThyr > 0) {
+              // totFund 없고 당해연도 예산만 있는 경우 (참고값으로 사용)
               annualBudget = fundThyr;
-            } else if (totFund > 0 && prdStart && prdEnd) {
-              const yrs = Math.max(1, parseInt(prdEnd) - parseInt(prdStart) + 1);
-              annualBudget = totFund / yrs;
-            } else if (totFund > 0) {
-              annualBudget = totFund; // 기간 미상 → 총연구비 그대로
+              budgetSource = 'thyr';
             }
 
-            if (annualBudget <= 0) continue; // 연구비 0 제외
+            if (annualBudget <= 0) continue;
 
-            // 연구개발단계 필터 (선택 시)
-            if (rndPhase && rndPhase !== 'ALL' && phase && !phase.includes(rndPhase)) continue;
-
-            // 사업구분 필터 (선택 시)
-            if (bizSect && bizSect !== 'ALL' && biz && !biz.includes(bizSect)) continue;
-
-            // 수행기간 필터: 사용자 희망기간 ±1년
-            if (durationYears && prdStart && prdEnd) {
-              const projYrs = parseInt(prdEnd) - parseInt(prdStart) + 1;
-              if (projYrs < durationYears - 1 || projYrs > durationYears + 1) continue;
-            }
-
-            allItems.push({ projNm, annualBudget, totFund, prdStart, prdEnd, phase, biz, perfOrg, absContent, pjtId });
+            allItems.push({ projNm, annualBudget, budgetSource, totFund, prdStart, prdEnd, projYrs, phase, biz, perfOrg, absContent, pjtId });
           }
         } catch (e) {
           addBudgetLog('⚠️', `"${kw}" 검색 오류: ${e.message}`);
@@ -4562,9 +4554,13 @@ Respond ONLY with:
     // ── Step 4: AI 유사도 평가 ───────────────────────────────────
     async function aiSimilarityEval(projName, researchContent, items) {
       if (!STATE.cerebrasKey || items.length <= 5) {
-        // AI 없거나 이미 5건 이하 → 그대로 반환 (균등 유사도)
+        // AI 없거나 이미 5건 이하 → 통계 기반 선정
+        // 유사도를 순서 기반으로 차등 부여하면 가중평균이 왜곡되므로 균등값(null) 처리
         const topN = items.slice(0, 7);
-        topN.forEach((item, i) => { item.similarity = Math.round(90 - i * 5); item.aiReason = '통계 기반 선정'; });
+        topN.forEach((item) => {
+          item.similarity = null;   // null = AI 미평가 표시 (가중평균 계산에서 제외)
+          item.aiReason   = '통계 기반 선정 (AI 미평가)';
+        });
         addBudgetLog('📌', `AI 평가 생략 → 통계 기반 Top ${topN.length}건 선정`);
         return topN;
       }
@@ -4656,12 +4652,17 @@ Respond ONLY with:
         ? (budgets[n/2 - 1] + budgets[n/2]) / 2
         : budgets[Math.floor(n/2)];
 
-      // AI 유사도 가중 평균
-      const totalWeight = selectedItems.reduce((s, i) => s + (i.similarity || 80), 0);
-      const weightedAvg = selectedItems.reduce((s, i) =>
-        s + i.annualBudget * ((i.similarity || 80) / totalWeight), 0);
+      // AI 유사도 가중 평균: similarity가 실제 AI 평가값(null이 아닌)인 항목만 반영
+      // null(AI 미평가)이면 가중평균 대신 산술평균을 표시
+      const aiEvaluated = selectedItems.filter(i => i.similarity !== null);
+      let weightedAvg = null;
+      if (aiEvaluated.length > 0) {
+        const totalWeight = aiEvaluated.reduce((s, i) => s + i.similarity, 0);
+        weightedAvg = aiEvaluated.reduce((s, i) =>
+          s + i.annualBudget * (i.similarity / totalWeight), 0);
+      }
 
-      // 범위 (Q1~Q3)
+      // 범위 (Q1~Q3) — 표본이 충분(10건 이상)할 때만 통계적 의미 있음
       const q1 = budgets[Math.floor(n * 0.25)];
       const q3 = budgets[Math.floor(n * 0.75)];
 
@@ -4669,7 +4670,20 @@ Respond ONLY with:
       const avg = budgets.reduce((s, v) => s + v, 0) / n;
       const sd  = Math.sqrt(budgets.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / n);
 
-      return { median, weightedAvg, q1, q3, avg, sd, min: budgets[0], max: budgets[n-1], n };
+      // 변동계수(CV): 분포 신뢰도 판단 지표 (50% 초과 시 편차 큼)
+      const cv = avg > 0 ? (sd / avg) * 100 : 0;
+
+      // AI 유사도 평균
+      const avgSimilarity = aiEvaluated.length > 0
+        ? Math.round(aiEvaluated.reduce((s, i) => s + i.similarity, 0) / aiEvaluated.length)
+        : null;
+
+      // 신뢰 등급: A(10건↑ + CV<50) / B(5~9건 또는 CV<80) / C(5건↓ 또는 CV≥80)
+      let confidence = 'A';
+      if (n < 5 || cv >= 80) confidence = 'C';
+      else if (n < 10 || cv >= 50) confidence = 'B';
+
+      return { median, weightedAvg, q1, q3, avg, sd, cv, avgSimilarity, confidence, min: budgets[0], max: budgets[n-1], n };
     }
 
     // ── 결과 대시보드 렌더링 ─────────────────────────────────────
@@ -4680,59 +4694,110 @@ Respond ONLY with:
       }
 
       const dYrs = parseInt(durationYears) || 1;
-      const totalMin = budgetRange.q1 * dYrs;
-      const totalMax = budgetRange.q3 * dYrs;
       const totalMedian = budgetRange.median * dYrs;
 
-      const tableHTML = selectedItems.map((item, i) => `
+      // ── 신뢰도 등급 UI 설정 ─────────────────────────────────────
+      const confidenceCfg = {
+        A: { label: '신뢰도 높음',  color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: 'solar:shield-check-bold-duotone' },
+        B: { label: '신뢰도 보통',  color: '#b45309', bg: '#fffbeb', border: '#fde68a', icon: 'solar:shield-warning-bold-duotone' },
+        C: { label: '표본 부족 — 참고용 추정치', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', icon: 'solar:shield-cross-bold-duotone' },
+      };
+      const cf = confidenceCfg[budgetRange.confidence];
+
+      // ── 신뢰도 경고 배너 ────────────────────────────────────────
+      const warningBanners = [];
+      if (budgetRange.n < 5) {
+        warningBanners.push(`⚠️ 표본 ${budgetRange.n}건 — 통계적 대표성이 낮습니다. 키워드를 조정하거나 필터를 완화하여 재시도를 권장합니다.`);
+      } else if (budgetRange.n < 10) {
+        warningBanners.push(`⚠️ 표본 ${budgetRange.n}건 — 10건 미만으로 범위 추정 신뢰도가 제한적입니다.`);
+      }
+      if (budgetRange.cv >= 80) {
+        warningBanners.push(`⚠️ 변동계수 ${Math.round(budgetRange.cv)}% — 과제 간 연구비 편차가 매우 큽니다. 이기종 과제가 혼재할 수 있습니다.`);
+      } else if (budgetRange.cv >= 50) {
+        warningBanners.push(`⚠️ 변동계수 ${Math.round(budgetRange.cv)}% — 연구비 분포 편차가 높아 범위 해석 시 주의가 필요합니다.`);
+      }
+      if (budgetRange.avgSimilarity !== null && budgetRange.avgSimilarity < 65) {
+        warningBanners.push(`⚠️ AI 유사도 평균 ${budgetRange.avgSimilarity}점 — 유사과제 매칭 품질이 낮습니다. 과제명을 구체적으로 입력해 주세요.`);
+      }
+      const warningHTML = warningBanners.length
+        ? `<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:0.75rem; padding:0.875rem 1rem; margin-bottom:1.25rem; font-size:0.8rem; color:#92400e; line-height:1.8;">
+            ${warningBanners.map(w => `<div>${w}</div>`).join('')}
+           </div>`
+        : '';
+
+      // ── 과제 테이블 ─────────────────────────────────────────────
+      const tableHTML = selectedItems.map((item) => {
+        const simDisplay = item.similarity !== null
+          ? `<div style="font-size:0.75rem; font-weight:600; color:#374151;">${item.similarity}점</div>
+             <div class="budget-score-bar"><div class="budget-score-fill" style="width:${item.similarity}%"></div></div>`
+          : `<div style="font-size:0.7rem; color:#9ca3af;">AI 미평가</div>`;
+        const sourceTag = item.budgetSource === 'thyr'
+          ? `<span style="font-size:0.65rem; color:#f59e0b; background:#fffbeb; border:1px solid #fde68a; border-radius:3px; padding:1px 4px; margin-left:4px;">당해연도</span>`
+          : '';
+        return `
         <tr>
           <td style="font-weight:600; color:#111;">${escHtml(item.projNm || '-')}</td>
-          <td style="white-space:nowrap; font-weight:700; color:#7c3aed;">${fmtBudget(item.annualBudget)}</td>
-          <td style="white-space:nowrap; color:#6b7280;">${item.prdStart || ''}~${item.prdEnd || ''}</td>
+          <td style="white-space:nowrap; font-weight:700; color:#7c3aed;">${fmtBudget(item.annualBudget)}${sourceTag}</td>
+          <td style="white-space:nowrap; color:#6b7280;">${item.prdStart || '?'}~${item.prdEnd || '?'}${item.projYrs ? ` (${item.projYrs}년)` : ''}</td>
           <td>${escHtml((item.perfOrg || '-').substring(0, 15))}</td>
-          <td>
-            <div style="font-size:0.75rem; font-weight:600; color:#374151;">${item.similarity || '-'}점</div>
-            <div class="budget-score-bar"><div class="budget-score-fill" style="width:${item.similarity || 0}%"></div></div>
-          </td>
+          <td>${simDisplay}</td>
           <td style="font-size:0.75rem; color:#6b7280; max-width:200px;">${escHtml((item.aiReason || '-').substring(0, 80))}</td>
-        </tr>
-      `).join('');
+        </tr>`;
+      }).join('');
 
       const logHTML = budgetLog.map(l =>
         `<div class="budget-log-line"><span class="budget-log-icon">${l.icon}</span><span>${escHtml(l.msg)}</span></div>`
       ).join('');
 
+      // 가중평균: AI 평가된 경우만 표시
+      const weightedAvgHTML = budgetRange.weightedAvg !== null
+        ? `<div class="budget-kpi-card">
+            <div class="budget-kpi-label">🤖 AI 유사도 가중 평균</div>
+            <div class="budget-kpi-value">${fmtBudget(budgetRange.weightedAvg)}</div>
+            <div class="budget-kpi-sub">AI 평가 ${budgetRange.n}건 유사도 반영</div>
+           </div>`
+        : `<div class="budget-kpi-card">
+            <div class="budget-kpi-label">📐 산술 평균</div>
+            <div class="budget-kpi-value">${fmtBudget(budgetRange.avg)}</div>
+            <div class="budget-kpi-sub">AI 미평가 — 단순 평균값</div>
+           </div>`;
+
+      // Q1~Q3 범위 레이블: 표본 충분 여부 표시
+      const rangeLabel = budgetRange.n >= 10
+        ? `권장 예산 범위 (Q1~Q3): ${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}`
+        : `참고 범위 (Min~Max, 표본 ${budgetRange.n}건): ${fmtBudget(budgetRange.min)} ~ ${fmtBudget(budgetRange.max)}`;
+
       document.getElementById('budgetResultContent').innerHTML = `
-        <div style="margin-bottom:1.5rem; text-align:center;">
-          <div style="display:inline-block; background:#f5f3ff; color:#7c3aed; font-size:0.75rem; font-weight:700; padding:0.25rem 0.75rem; border-radius:1rem; margin-bottom:0.5rem; border:1px solid #ddd6fe;">PROPOSAL V2 로직 적용</div>
+        <div style="margin-bottom:1.25rem; text-align:center;">
+          <div style="display:inline-flex; align-items:center; gap:0.4rem; background:${cf.bg}; color:${cf.color}; font-size:0.75rem; font-weight:700; padding:0.3rem 0.85rem; border-radius:1rem; margin-bottom:0.5rem; border:1px solid ${cf.border};">
+            <iconify-icon icon="${cf.icon}" width="14"></iconify-icon>
+            ${cf.label} · 표본 ${budgetRange.n}건 · CV ${Math.round(budgetRange.cv)}%${budgetRange.avgSimilarity !== null ? ` · 유사도 평균 ${budgetRange.avgSimilarity}점` : ''}
+          </div>
           <h3 style="font-size:1.25rem; font-weight:800; color:#111; margin-bottom:0.25rem;">${escHtml(projName)}</h3>
-          <p style="font-size:0.8125rem; color:#6b7280;">수행기간 ${dYrs}년 기준 | 분석 대상 유사과제 ${budgetRange.n}건</p>
         </div>
+
+        ${warningHTML}
 
         <div style="background:linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); border-radius:1.5rem; padding:2rem; margin-bottom:2rem; color:#fff; text-align:center; box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.3);">
           <p style="font-size:0.875rem; font-weight:500; opacity:0.9; margin-bottom:0.5rem;">연간 적정 연구비 (중앙값 기준)</p>
           <h2 style="font-size:3rem; font-weight:900; margin-bottom:1rem; letter-spacing:-0.025em;">${fmtBudget(budgetRange.median)}</h2>
-          <div style="display:inline-flex; gap:0.5rem; align-items:center; background:rgba(255,255,255,0.2); backdrop-filter:blur(4px); padding:0.6rem 1.2rem; border-radius:2rem; font-size:0.925rem; font-weight:700; border:1px solid rgba(255,255,255,0.3);">
+          <div style="display:inline-flex; gap:0.5rem; align-items:center; background:rgba(255,255,255,0.2); backdrop-filter:blur(4px); padding:0.6rem 1.2rem; border-radius:2rem; font-size:0.875rem; font-weight:700; border:1px solid rgba(255,255,255,0.3);">
             <iconify-icon icon="solar:shield-check-bold-duotone" style="font-size:1.1rem;"></iconify-icon>
-            권장 예산 범위: ${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}
+            ${rangeLabel}
           </div>
         </div>
 
         <div class="budget-kpi-grid" style="margin-bottom:2rem;">
+          ${weightedAvgHTML}
           <div class="budget-kpi-card">
-            <div class="budget-kpi-label">🤖 AI 유사도 가중 평균</div>
-            <div class="budget-kpi-value">${fmtBudget(budgetRange.weightedAvg)}</div>
-            <div class="budget-kpi-sub">상위 유사과제 비중 반영</div>
-          </div>
-          <div class="budget-kpi-card">
-            <div class="budget-kpi-label">📅 총 연구비 (${dYrs}년)</div>
+            <div class="budget-kpi-label">📅 총 연구비 추정 (${dYrs}년)</div>
             <div class="budget-kpi-value">${fmtBudget(totalMedian)}</div>
-            <div class="budget-kpi-sub">중앙값 × ${dYrs}년 기준</div>
+            <div class="budget-kpi-sub">중앙값 × ${dYrs}년</div>
           </div>
           <div class="budget-kpi-card">
-            <div class="budget-kpi-label">📊 분석 표본 범위</div>
+            <div class="budget-kpi-label">📊 연구비 분포 범위</div>
             <div class="budget-kpi-value" style="font-size:1.1rem;">${fmtBudget(budgetRange.min)}<br>~ ${fmtBudget(budgetRange.max)}</div>
-            <div class="budget-kpi-sub">수집된 유효 과제 범위</div>
+            <div class="budget-kpi-sub">유효 과제 전체 범위</div>
           </div>
         </div>
 
@@ -4741,16 +4806,19 @@ Respond ONLY with:
             <iconify-icon icon="solar:lightbulb-bold-duotone" style="color:#f59e0b;"></iconify-icon>
             산출 근거 및 해석 가이드
           </h4>
-          최근 8년 내 유사 연구 개발 단계 및 사업 유형의 NTIS 과제 ${budgetRange.n}건을 분석했습니다. 
-          중앙값인 <strong>${fmtBudget(budgetRange.median)}</strong>원을 최적 기준으로 제안하며, 
-          과제 특성에 따라 최대 <strong>${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}</strong> 범위 내에서 조정하는 것이 합리적입니다.
-          (IQR 방식 이상치 제거 및 AI 4차원 유사도 가중치 적용 완료)
+          최근 8년 내 NTIS 과제 ${budgetRange.n}건을 IQR 이상치 제거 후 분석했습니다.
+          중앙값 <strong>${fmtBudget(budgetRange.median)}/년</strong>을 기준값으로 제안합니다.
+          ${budgetRange.n >= 10
+            ? `Q1~Q3 범위 <strong>${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}</strong> 내에서 과제 특성에 맞게 조정하세요.`
+            : `표본이 ${budgetRange.n}건으로 적어 Q1~Q3 범위보다 Min~Max(<strong>${fmtBudget(budgetRange.min)} ~ ${fmtBudget(budgetRange.max)}</strong>)를 참고 범위로 활용하세요.`
+          }
+          ${budgetRange.weightedAvg !== null ? `AI 유사도 가중평균 <strong>${fmtBudget(budgetRange.weightedAvg)}</strong>과 중앙값의 차이가 크면 이상치 존재 가능성을 검토하세요.` : ''}
         </div>
 
         <div style="margin-bottom:1.5rem;">
           <h4 style="font-size:1rem; font-weight:800; color:#111827; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
             <iconify-icon icon="solar:ranking-bold-duotone" style="color:#7c3aed;"></iconify-icon>
-            AI 선정 유사과제 리스트 (Top-${selectedItems.length})
+            ${budgetRange.weightedAvg !== null ? 'AI 선정' : '통계 기반'} 유사과제 리스트 (Top-${selectedItems.length})
           </h4>
           <div style="overflow-x:auto;">
             <table class="budget-table">
