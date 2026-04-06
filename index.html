@@ -4391,10 +4391,8 @@ Respond ONLY with:
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        // 401이면 Cerebras 키 오류 → 기본 검색으로 폴백
-        addBudgetLog('⚠️', `AI 키워드 추출 실패 (${resp.status}) → 과제명 기반 기본 검색`);
-        return [projName];
+        addBudgetLog('⚠️', `AI 키워드 추출 실패 (${resp.status}) → 수동 분절 검색으로 전환`);
+        return extractKeywordsManual(projName);
       }
 
       const data = await resp.json();
@@ -4405,6 +4403,15 @@ Respond ONLY with:
       return Array.isArray(parsed?.keywords) && parsed.keywords.length
         ? parsed.keywords.slice(0, 3)
         : [projName];
+    }
+
+    // AI 미설정 시 수동 키워드 추출 (최대한 쪼개서 NTIS 검색 유도)
+    function extractKeywordsManual(projName) {
+      const words = projName.split(/[\s,]+/).filter(w => w.length >= 2);
+      if (words.length >= 2) {
+        return [words.join(' '), words[0], words.slice(0, 2).join(' ')];
+      }
+      return [projName];
     }
 
     // ── Step 2: NTIS 과제 수집 ──────────────────────────────────
@@ -4789,8 +4796,8 @@ Respond ONLY with:
         
         // 결과가 너무 많거나 0건일 때의 처리 (정박사님 피드백 반영)
         if (rawItems.length === 0) {
-          addBudgetLog('⚠️', '키워드 검색 결과가 없습니다. 과제명 핵심어로 재검색을 시도합니다.');
-          const fallbackKeywords = [projName]; 
+          addBudgetLog('⚠️', '결과가 없습니다. 과제명 분절 검색을 시도합니다...');
+          const fallbackKeywords = extractKeywordsManual(projName);
           rawItems = await fetchNTISForBudget(fallbackKeywords, durationYears, rndPhase, bizSect);
         }
 
