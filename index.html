@@ -476,9 +476,9 @@
   <div id="proxyOfflineBanner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2">
     <div class="max-w-7xl mx-auto flex items-center gap-3 text-xs text-amber-800">
       <iconify-icon icon="solar:danger-triangle-bold-duotone" width="16" class="text-amber-500 flex-shrink-0"></iconify-icon>
-      <span><strong>로컬 프록시 서버가 실행되지 않았습니다.</strong> 토큰 자동 발급 및 NTIS 검색이 제한됩니다.</span>
-      <span class="text-amber-600">→ 프로젝트 폴더의 <code class="bg-amber-100 px-1 rounded">서버시작.bat</code>을 더블클릭하세요.</span>
-      <button onclick="checkProxy().then(updateProxyStatus)" class="ml-auto flex-shrink-0 bg-amber-200 hover:bg-amber-300 text-amber-900 px-2 py-0.5 rounded font-medium transition-colors">재확인</button>
+      <span><strong>프록시 서버 미연결.</strong> CORS 오류가 발생할 수 있습니다.</span>
+      <span class="text-amber-600">→ 로컬: <code class="bg-amber-100 px-1 rounded">서버시작.bat</code> 실행 | 배포: Cloudflare Worker 설정 필요</span>
+      <button onclick="checkProxy()" class="ml-auto flex-shrink-0 bg-amber-200 hover:bg-amber-300 text-amber-900 px-2 py-0.5 rounded font-medium transition-colors">재확인</button>
     </div>
   </div>
 
@@ -943,21 +943,44 @@
 
     const NTIS_BASE = 'https://www.ntis.go.kr';
 
-    const PROXY_BASE = 'http://127.0.0.1:3737';
-    const API_BASE_DIRECT = 'https://apigateway.kisti.re.kr/openapicall.do';
-    const TOKEN_URL_DIRECT = 'https://apigateway.kisti.re.kr/tokenrequest.do';
+    // ── 프록시 우선순위: 로컬(3737) → Cloudflare Worker → 직접 호출(CORS 위험)
+    const PROXY_BASE   = 'http://127.0.0.1:3737';
+    // ★ Cloudflare Worker 배포 후 아래 URL을 실제 Worker URL로 교체하세요 ★
+    const CF_WORKER_BASE = 'https://scienceon-proxy.YOUR_CF_SUBDOMAIN.workers.dev';
+    const API_BASE_DIRECT    = 'https://apigateway.kisti.re.kr/openapicall.do';
+    const TOKEN_URL_DIRECT   = 'https://apigateway.kisti.re.kr/tokenrequest.do';
 
-    // 프록시 서버 가용 여부 (init 시 확인)
-    let PROXY_AVAILABLE = false;
+    // 현재 활성 프록시 ('local' | 'worker' | 'direct')
+    let ACTIVE_PROXY = 'direct';
+    // 하위 호환: 기존 코드에서 PROXY_AVAILABLE 참조하는 곳을 위해 유지
+    Object.defineProperty(window, 'PROXY_AVAILABLE', {
+      get() { return ACTIVE_PROXY !== 'direct'; },
+      configurable: true,
+    });
 
     async function checkProxy() {
+      // 1순위: 로컬 프록시
       try {
         const res = await fetch(`${PROXY_BASE}/health`, { signal: AbortSignal.timeout(1500) });
-        PROXY_AVAILABLE = res.ok;
-      } catch {
-        PROXY_AVAILABLE = false;
+        if (res.ok) { ACTIVE_PROXY = 'local'; updateProxyStatus(); return; }
+      } catch { /* 로컬 없음 */ }
+
+      // 2순위: Cloudflare Worker (배포 URL이 placeholder면 건너뜀)
+      if (!CF_WORKER_BASE.includes('YOUR_CF_SUBDOMAIN')) {
+        try {
+          const res = await fetch(`${CF_WORKER_BASE}/health`, { signal: AbortSignal.timeout(4000) });
+          if (res.ok) { ACTIVE_PROXY = 'worker'; updateProxyStatus(); return; }
+        } catch { /* Worker 접근 실패 */ }
       }
+
+      ACTIVE_PROXY = 'direct';
       updateProxyStatus();
+    }
+
+    function getProxyBase() {
+      if (ACTIVE_PROXY === 'local')  return PROXY_BASE;
+      if (ACTIVE_PROXY === 'worker') return CF_WORKER_BASE;
+      return null; // 직접 호출
     }
 
     function updateProxyStatus() {
@@ -966,9 +989,14 @@
       const bar = document.getElementById('apiStatus');
       const proxyBanner = document.getElementById('proxyOfflineBanner');
 
-      if (STATE.clientId && STATE.token && PROXY_AVAILABLE) {
+      if (STATE.clientId && STATE.token && ACTIVE_PROXY === 'local') {
         dot.className = 'w-1.5 h-1.5 rounded-full bg-green-400';
-        text.textContent = 'API + 프록시 연결됨';
+        text.textContent = 'API + 로컬 프록시 연결됨';
+        bar.className = bar.className.replace(/api-status-\w+/g, '').trim() + ' api-status-connected';
+        if (proxyBanner) proxyBanner.classList.add('hidden');
+      } else if (STATE.clientId && STATE.token && ACTIVE_PROXY === 'worker') {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-blue-400';
+        text.textContent = 'API + Worker 프록시 연결됨 ☁️';
         bar.className = bar.className.replace(/api-status-\w+/g, '').trim() + ' api-status-connected';
         if (proxyBanner) proxyBanner.classList.add('hidden');
       } else if (STATE.clientId && STATE.token) {
@@ -985,7 +1013,8 @@
     }
 
     function getApiBase() {
-      return PROXY_AVAILABLE ? `${PROXY_BASE}/api` : API_BASE_DIRECT;
+      const base = getProxyBase();
+      return base ? `${base}/api` : API_BASE_DIRECT;
     }
 
     // ============================================================

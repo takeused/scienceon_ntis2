@@ -191,7 +191,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── / — HTML 파일 서빙
   if (pathname === '/') {
-    const htmlPath = path.join(__dirname, 'scienceon-search.html');
+    const htmlPath = path.join(__dirname, 'index.html');
     try {
       const html = fs.readFileSync(htmlPath, 'utf-8');
       setCORS(res);
@@ -199,7 +199,7 @@ const server = http.createServer(async (req, res) => {
       res.end(html);
     } catch (e) {
       res.writeHead(404);
-      res.end('scienceon-search.html 파일을 찾을 수 없습니다.');
+      res.end('index.html 파일을 찾을 수 없습니다.');
     }
     return;
   }
