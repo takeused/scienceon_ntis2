@@ -1180,7 +1180,7 @@
       } catch { /* 로컬 없음 */ }
 
       // 2순위: Cloudflare Worker (배포 URL이 placeholder면 건너뜀)
-      if (!CF_WORKER_BASE.includes('takeused')) {
+      if (true) {
         try {
           const res = await fetch(`${CF_WORKER_BASE}/health`, { signal: AbortSignal.timeout(4000) });
           if (res.ok) { ACTIVE_PROXY = 'worker'; updateProxyStatus(); return; }
