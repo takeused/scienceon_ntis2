@@ -4786,9 +4786,10 @@ Respond ONLY with:
     // ── 메인 진입점 ───────────────────────────────────────────────
     async function runBudgetEstimation() {
       const projName       = document.getElementById('budgetProjectName').value.trim();
-      const durationYears  = parseInt(document.getElementById('budgetDuration').value) || 0;
-      const rndPhase       = document.getElementById('budgetRndPhase').value;
-      const bizSect        = document.getElementById('budgetBizSect').value;
+      // [v2.1] UI 간소화: 기본값 '전체' 사용 (입력창 제거)
+      const durationYears  = 0; 
+      const rndPhase       = "ALL";
+      const bizSect        = "ALL";
 
       if (!projName) {
         showToast('신규과제명을 입력해주세요.', 'warning');
@@ -4919,39 +4920,8 @@ Respond ONLY with:
 
 
 
-      <div class="budget-select-group">
-        <div>
-          <label class="budget-input-label" for="budgetDuration">희망 수행기간</label>
-          <select id="budgetDuration" class="budget-select">
-            <option value="0">기간 제한 없음</option>
-            <option value="1">1년</option>
-            <option value="2">2년</option>
-            <option value="3" selected>3년</option>
-            <option value="4">4년</option>
-            <option value="5">5년</option>
-            <option value="6">6년</option>
-          </select>
-        </div>
-        <div>
-          <label class="budget-input-label" for="budgetRndPhase">연구개발단계</label>
-          <select id="budgetRndPhase" class="budget-select">
-            <option value="ALL">전체 (제한 없음)</option>
-            <option value="기초">기초연구</option>
-            <option value="응용">응용연구</option>
-            <option value="개발">개발연구</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="budget-input-group">
-        <label class="budget-input-label" for="budgetBizSect">사업유형 <span>(선택)</span></label>
-        <select id="budgetBizSect" class="budget-select" style="max-width:300px;">
-          <option value="ALL">전체 (제한 없음)</option>
-          <option value="출연">출연연구기관</option>
-          <option value="산학연">산학연 협력</option>
-          <option value="지자체">지자체 주도</option>
-        </select>
-      </div>
+      <!-- [v2.1] UI 간소화: 수행기간/단계/유형 선택창 제거 (기본값 '전체' 중심 분석) -->
+      
 
       <div style="background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:0.75rem; margin-bottom:1.25rem; font-size:0.75rem; color:#92400e;">
         ℹ️ Cerebras API 키가 설정되어 있으면 AI 기반 키워드 추출 및 유사도 평가가 수행됩니다.<br>
