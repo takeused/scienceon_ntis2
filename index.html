@@ -5099,6 +5099,12 @@ ${'='.repeat(64)}
       const rndPhase       = "ALL";
       const bizSect        = "ALL";
 
+      const runBtn = document.getElementById('runBtn');
+      if (runBtn) {
+        runBtn.disabled = true;
+        runBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;"></span> 분석 중...';
+      }
+
       // 로그 초기화 + 진행 바 표시
       budgetLog = [];
       document.getElementById('budgetResultContent').innerHTML = '';
@@ -5131,8 +5137,10 @@ ${'='.repeat(64)}
 
         if (rawItems.length === 0) {
           showToast('조건에 맞는 NTIS 과제를 찾지 못했습니다. 필터 조건을 완화하고 다시 시도해보세요.', 'warning');
-          runBtn.disabled = false;
-          runBtn.innerHTML = '<iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon> 분석 시작';
+          if (runBtn) {
+            runBtn.disabled = false;
+            runBtn.innerHTML = '<iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon> 분석 시작';
+          }
           document.getElementById('budgetProgressArea').classList.add('hidden');
           return;
         }
@@ -5145,7 +5153,6 @@ ${'='.repeat(64)}
         // ── Step 4: AI 유사도 평가 ──────────────────────────────
         setBudgetStep(4);
         addBudgetLog('🔬', 'Step 4: AI 4차원 유사도 평가 시작...');
-        // 사용자 입력 대신 생성된 aiSynopsis를 기준으로 평가
         const selectedItems = await aiSimilarityEval(projName, aiSynopsis, cleanedItems);
 
         // ── Step 5: 최종 예산 산출 ──────────────────────────────
@@ -5161,6 +5168,11 @@ ${'='.repeat(64)}
         console.error('[Budget]', err);
         showToast('분석 오류: ' + err.message, 'error');
         addBudgetLog('❌', '오류: ' + err.message);
+      } finally {
+        if (runBtn) {
+          runBtn.disabled = false;
+          runBtn.innerHTML = '<iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon> 분석 시작';
+        }
       }
     }
 
@@ -5195,7 +5207,7 @@ ${'='.repeat(64)}
             placeholder="예: 재난안전 플랫폼 개발"
             style="flex:1;"
             onkeydown="if(event.key==='Enter'){ event.preventDefault(); _startBudgetWithQuery(document.getElementById('budgetQueryInput').value); }">
-          <button type="button" class="btn-budget" onclick="_startBudgetWithQuery(document.getElementById('budgetQueryInput').value)"
+          <button id="runBtn" type="button" class="btn-budget" onclick="_startBudgetWithQuery(document.getElementById('budgetQueryInput').value)"
             style="white-space:nowrap;">
             <iconify-icon icon="solar:calculator-bold-duotone" width="16"></iconify-icon>
             분석 시작
