@@ -4271,11 +4271,23 @@ Respond ONLY with this JSON structure:
 
     // ── 모달 열기/닫기 ────────────────────────────────────────────
     function openBudgetModal() {
-      document.getElementById('budgetInputModal').classList.remove('hidden');
-      document.getElementById('budgetProjectName').focus();
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) {
+        showToast('먼저 검색창에 분석할 과제명(키워드)을 입력해주세요.', 'warning');
+        document.getElementById('searchInput').focus();
+        return;
+      }
+      if (!STATE.ntisKey) {
+        showToast('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.', 'warning');
+        setTimeout(() => openSettings(), 600);
+        return;
+      }
+      // 결과 모달 열고 바로 분석 시작
+      document.getElementById('budgetResultModal').classList.remove('hidden');
+      runBudgetEstimation(query);
     }
     function closeBudgetModal() {
-      document.getElementById('budgetInputModal').classList.add('hidden');
+      document.getElementById('budgetResultModal').classList.add('hidden');
     }
     function closeBudgetResult() {
       document.getElementById('budgetResultModal').classList.add('hidden');
@@ -4849,39 +4861,19 @@ Respond ONLY with:
         </p>
       `;
 
+      document.getElementById('budgetProgressArea').classList.add('hidden');
       document.getElementById('budgetResultModal').classList.remove('hidden');
-      document.getElementById('budgetInputModal').classList.add('hidden');
     }
 
     // ── 메인 진입점 ───────────────────────────────────────────────
-    async function runBudgetEstimation() {
-      const projName       = document.getElementById('budgetProjectName').value.trim();
-      // [v2.1] UI 간소화: 기본값 '전체' 사용 (입력창 제거)
-      const durationYears  = 0; 
+    async function runBudgetEstimation(projName) {
+      const durationYears  = 0;
       const rndPhase       = "ALL";
       const bizSect        = "ALL";
 
-      if (!projName) {
-        showToast('신규과제명을 입력해주세요.', 'warning');
-        document.getElementById('budgetProjectName').focus();
-        return;
-      }
-
-      if (!STATE.ntisKey) {
-        showToast('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.', 'warning');
-        setTimeout(() => openSettings(), 600);
-        return;
-      }
-
-      // 로그 초기화
+      // 로그 초기화 + 진행 바 표시
       budgetLog = [];
-
-      // 로딩 UI
-      const runBtn = document.getElementById('budgetRunBtn');
-      runBtn.disabled = true;
-      runBtn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></span> 분석 중...';
-
-      // 진행 상황 모달 보여주기
+      document.getElementById('budgetResultContent').innerHTML = '';
       document.getElementById('budgetProgressArea').classList.remove('hidden');
       document.getElementById('budgetProcessLog').innerHTML = '';
       setBudgetStep(1);
@@ -4941,72 +4933,10 @@ Respond ONLY with:
         console.error('[Budget]', err);
         showToast('분석 오류: ' + err.message, 'error');
         addBudgetLog('❌', '오류: ' + err.message);
-      } finally {
-        runBtn.disabled = false;
-        runBtn.innerHTML = '<iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon> 분석 시작';
       }
     }
 
   </script>
-
-  <!-- =========================================================
-       적정 연구비 산출 — 입력 모달
-  ========================================================== -->
-  <div id="budgetInputModal" class="budget-modal-bg hidden" onclick="if(event.target===this)closeBudgetModal()">
-    <div class="budget-modal-box">
-      <!-- 헤더 -->
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
-        <div>
-          <h2 style="font-size:1.125rem; font-weight:700; color:#111; display:flex; align-items:center; gap:8px;">
-            <iconify-icon icon="solar:calculator-bold-duotone" width="22" style="color:#7c3aed;"></iconify-icon>
-            신규과제 적정 연구비 산출
-          </h2>
-          <p style="font-size:0.75rem; color:#9ca3af; margin-top:2px;">NTIS 과제 데이터 기반 5단계 하이브리드 파이프라인</p>
-        </div>
-        <button type="button" onclick="closeBudgetModal()" style="background:none; border:none; cursor:pointer; color:#9ca3af; font-size:1.25rem;" aria-label="닫기">
-          <iconify-icon icon="solar:close-circle-bold-duotone" width="24"></iconify-icon>
-        </button>
-      </div>
-
-      <!-- 5단계 진행 바 (분석 시작 후 표시) -->
-      <div id="budgetProgressArea" class="hidden">
-        <div class="budget-step-bar">
-          <div class="budget-step" id="budgetStep1"></div>
-          <div class="budget-step" id="budgetStep2"></div>
-          <div class="budget-step" id="budgetStep3"></div>
-          <div class="budget-step" id="budgetStep4"></div>
-          <div class="budget-step" id="budgetStep5"></div>
-        </div>
-        <p id="budgetStepLabel" style="font-size:0.8125rem; color:#7c3aed; font-weight:600; text-align:center; margin-bottom:0.75rem;"></p>
-        <div class="budget-process-log" id="budgetProcessLog"></div>
-      </div>
-
-      <!-- 입력 폼 -->
-      <div class="budget-input-group">
-        <label class="budget-input-label" for="budgetProjectName">신규과제명 <span>*필수</span></label>
-        <input id="budgetProjectName" class="budget-input" type="text" placeholder="예: 지속가능한 도심 홍수 예측 시스템 개발"
-          onkeydown="if(event.key==='Enter'){ event.preventDefault(); runBudgetEstimation(); }">
-      </div>
-
-
-
-      <!-- [v2.1] UI 간소화: 수행기간/단계/유형 선택창 제거 (기본값 '전체' 중심 분석) -->
-      
-
-      <div style="background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:0.75rem; margin-bottom:1.25rem; font-size:0.75rem; color:#92400e;">
-        ℹ️ Cerebras API 키가 설정되어 있으면 AI 기반 키워드 추출 및 유사도 평가가 수행됩니다.<br>
-        미설정 시에도 NTIS 통계 기반으로 결과를 제공합니다. (NTIS API 키는 필수)
-      </div>
-
-      <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
-        <button type="button" class="btn-budget-secondary" onclick="closeBudgetModal()">취소</button>
-        <button type="button" class="btn-budget" id="budgetRunBtn" onclick="runBudgetEstimation()">
-          <iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon>
-          분석 시작
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- =========================================================
        적정 연구비 산출 — 결과 모달
@@ -5028,6 +4958,20 @@ Respond ONLY with:
           </button>
         </div>
       </div>
+
+      <!-- 분석 진행 바 (분석 중 표시) -->
+      <div id="budgetProgressArea" class="hidden">
+        <div class="budget-step-bar">
+          <div class="budget-step" id="budgetStep1"></div>
+          <div class="budget-step" id="budgetStep2"></div>
+          <div class="budget-step" id="budgetStep3"></div>
+          <div class="budget-step" id="budgetStep4"></div>
+          <div class="budget-step" id="budgetStep5"></div>
+        </div>
+        <p id="budgetStepLabel" style="font-size:0.8125rem; color:#7c3aed; font-weight:600; text-align:center; margin-bottom:0.75rem;"></p>
+        <div class="budget-process-log" id="budgetProcessLog"></div>
+      </div>
+
       <div id="budgetResultContent"></div>
     </div>
   </div>
