@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -1180,7 +1180,7 @@
       } catch { /* 로컬 없음 */ }
 
       // 2순위: Cloudflare Worker (배포 URL이 placeholder면 건너뜀)
-      if (true) {
+      if (!CF_WORKER_BASE.includes('YOUR_CF_SUBDOMAIN')) {
         try {
           const res = await fetch(`${CF_WORKER_BASE}/health`, { signal: AbortSignal.timeout(4000) });
           if (res.ok) { ACTIVE_PROXY = 'worker'; updateProxyStatus(); return; }
@@ -4500,7 +4500,7 @@ Respond ONLY with:
         return topN;
       }
 
-      addBudgetLog('🤖', `AI 유사도 평가 중... (${items.length}건 후보)');
+      addBudgetLog('🤖', `AI 유사도 평가 중... (${items.length}건 후보)`);
 
       const candidateList = items.slice(0, 20).map((item, i) =>
         `[${i}] ${item.projNm} | 연간 ${fmtBudget(item.annualBudget)} | ${item.prdStart}~${item.prdEnd} | ${item.perfOrg}\n초록: ${(item.absContent || '').substring(0, 100)}`
