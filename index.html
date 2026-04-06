@@ -4271,19 +4271,29 @@ Respond ONLY with this JSON structure:
 
     // ── 모달 열기/닫기 ────────────────────────────────────────────
     function openBudgetModal() {
-      const query = document.getElementById('searchInput').value.trim();
-      if (!query) {
-        showToast('먼저 검색창에 분석할 과제명(키워드)을 입력해주세요.', 'warning');
-        document.getElementById('searchInput').focus();
-        return;
-      }
       if (!STATE.ntisKey) {
         showToast('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.', 'warning');
         setTimeout(() => openSettings(), 600);
         return;
       }
-      // 결과 모달 열고 바로 분석 시작
+      const query = document.getElementById('searchInput').value.trim();
       document.getElementById('budgetResultModal').classList.remove('hidden');
+      if (query) {
+        // 기존 검색어가 있으면 바로 분석 시작
+        _startBudgetWithQuery(query);
+      } else {
+        // 검색어 없으면 입력 폼 표시
+        document.getElementById('budgetQueryForm').classList.remove('hidden');
+        document.getElementById('budgetProgressArea').classList.add('hidden');
+        document.getElementById('budgetResultContent').innerHTML = '';
+        document.getElementById('budgetQueryInput').value = '';
+        document.getElementById('budgetQueryInput').focus();
+      }
+    }
+    function _startBudgetWithQuery(query) {
+      query = query.trim();
+      if (!query) return;
+      document.getElementById('budgetQueryForm').classList.add('hidden');
       runBudgetEstimation(query);
     }
     function closeBudgetModal() {
@@ -4973,6 +4983,22 @@ Respond ONLY with:
           </button>
           <button type="button" onclick="closeBudgetResult()" style="background:none; border:none; cursor:pointer; color:#9ca3af;" aria-label="닫기">
             <iconify-icon icon="solar:close-circle-bold-duotone" width="24"></iconify-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- 키워드 직접 입력 폼 (검색어 없을 때 표시) -->
+      <div id="budgetQueryForm" class="hidden">
+        <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">분석할 과제명 또는 키워드를 입력하세요.</p>
+        <div style="display:flex; gap:0.5rem;">
+          <input id="budgetQueryInput" class="budget-input" type="text"
+            placeholder="예: 재난안전 플랫폼 개발"
+            style="flex:1;"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); _startBudgetWithQuery(document.getElementById('budgetQueryInput').value); }">
+          <button type="button" class="btn-budget" onclick="_startBudgetWithQuery(document.getElementById('budgetQueryInput').value)"
+            style="white-space:nowrap;">
+            <iconify-icon icon="solar:calculator-bold-duotone" width="16"></iconify-icon>
+            분석 시작
           </button>
         </div>
       </div>
