@@ -1723,6 +1723,34 @@
     }
 
     // ============================================================
+    // Token Helpers
+    // ============================================================
+    function encryptNTISAccounts(apiKey, macAddr) {
+      if (typeof CryptoJS === 'undefined') return null;
+
+      try {
+        // 공식 스펙: AES-256-CBC, UTF-8 key, IV=jvHJ1EFA0IXBrxxz, datetime=yyyyMMddHHmmss, URL-safe Base64
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const datetime = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        const accountsJson = JSON.stringify({ mac_address: macAddr, datetime }).replace(/ /g, '');
+
+        const key = CryptoJS.enc.Utf8.parse(apiKey);
+        const iv = CryptoJS.enc.Utf8.parse('jvHJ1EFA0IXBrxxz');
+        const encrypted = CryptoJS.AES.encrypt(accountsJson, key, {
+          iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7,
+        });
+        
+        // URL-safe Base64
+        return encrypted.ciphertext.toString(CryptoJS.enc.Base64)
+          .replace(/\+/g, '-').replace(/\//g, '_');
+      } catch (e) {
+        console.error('Encryption failed:', e);
+        return null;
+      }
+    }
+
+    // ============================================================
     // Auto Token Request (초기화 시 자동 발급)
     // ============================================================
     async function autoRequestToken() {
@@ -1733,7 +1761,15 @@
       if (!clientId || !apiKey || !macAddr || !PROXY_AVAILABLE) return;
 
       try {
-        const url = `${getProxyBase()}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
+        let url;
+        if (ACTIVE_PROXY === 'worker') {
+          const accounts = encryptNTISAccounts(apiKey, macAddr);
+          if (!accounts) return;
+          url = `${getProxyBase()}/token?accounts=${encodeURIComponent(accounts)}&client_id=${encodeURIComponent(clientId)}`;
+        } else {
+          url = `${getProxyBase()}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
+        }
+
         const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
         const data = await resp.json();
 
@@ -1782,16 +1818,26 @@
         let data;
 
         if (PROXY_AVAILABLE) {
-          // ── 방법 1: 로컬 프록시 서버 사용 (AES256 서버에서 처리)
-          const url = `${getProxyBase()}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
+          // ── 방법 1: 프록시 서버 사용
+          let url;
+          if (ACTIVE_PROXY === 'worker') {
+            // Worker는 암호화된 accounts 파라미터를 기대함
+            const accounts = encryptNTISAccounts(apiKey, macAddr);
+            if (!accounts) throw new Error('CryptoJS 로드 실패 (암호화 불가)');
+            url = `${getProxyBase()}/token?accounts=${encodeURIComponent(accounts)}&client_id=${encodeURIComponent(clientId)}`;
+          } else {
+            // 로컬 프록시는 raw 파라미터를 받아 직접 암호화함
+            url = `${getProxyBase()}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
+          }
           const resp = await fetch(url);
           data = await resp.json();
         } else {
-          // ── 방법 2: 브라우저에서 직접 시도 (CryptoJS)
-          if (typeof CryptoJS === 'undefined') {
+          // ── 방법 2: 브라우저에서 직접 시도 (Proxy 없이 KISTI 직접 호출)
+          const accounts = encryptNTISAccounts(apiKey, macAddr);
+          if (!accounts) {
             resultEl.className = 'token-result-err';
             resultEl.innerHTML = `
-          <strong>프록시 서버 미실행 + CryptoJS 로드 실패</strong><br><br>
+          <strong>CryptoJS 로드 실패</strong><br><br>
           해결 방법:<br>
           1. 터미널에서 <code style="background:#1a1a1a;padding:2px 4px;border-radius:3px;">node proxy-server.js</code> 실행 후 재시도<br>
           2. 또는 인터넷 연결 확인 (CryptoJS CDN)
@@ -1801,22 +1847,7 @@
             return;
           }
 
-          // 공식 스펙: AES-256-CBC, UTF-8 key, IV=jvHJ1EFA0IXBrxxz, datetime=yyyyMMddHHmmss, URL-safe Base64
-          const now = new Date();
-          const pad = n => String(n).padStart(2, '0');
-          const datetime = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-          const accountsJson = JSON.stringify({ mac_address: macAddr, datetime }).replace(/ /g, '');
-
-          const key = CryptoJS.enc.Utf8.parse(apiKey);
-          const iv = CryptoJS.enc.Utf8.parse('jvHJ1EFA0IXBrxxz');
-          const encrypted = CryptoJS.AES.encrypt(accountsJson, key, {
-            iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7,
-          });
-          // URL-safe Base64
-          const b64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64)
-            .replace(/\+/g, '-').replace(/\//g, '_');
-          const accounts = encodeURIComponent(b64);
-          const tokenUrl = `${TOKEN_URL_DIRECT}?accounts=${accounts}&client_id=${encodeURIComponent(clientId)}`;
+          const tokenUrl = `${TOKEN_URL_DIRECT}?accounts=${encodeURIComponent(accounts)}&client_id=${encodeURIComponent(clientId)}`;
           const resp = await fetch(tokenUrl);
           if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
           data = await resp.json();
@@ -1830,7 +1861,7 @@
           localStorage.setItem('sc_token_expire', expire);
           STATE.tokenExpire = expire;
           resultEl.className = 'token-result-ok';
-          resultEl.textContent = `✅ 토큰 발급 성공! 만료: ${expire || '2시간 후'} ${PROXY_AVAILABLE ? '(프록시 경유)' : '(직접)'}`;
+          resultEl.textContent = `✅ 토큰 발급 성공! 만료: ${expire || '2시간 후'} ${ACTIVE_PROXY === 'worker' ? '(Worker 경유)' : ACTIVE_PROXY === 'local' ? '(로컬 프록시 경유)' : '(직접)'}`;
         } else {
           throw new Error(data.error || data.message || JSON.stringify(data));
         }
@@ -1838,19 +1869,18 @@
         resultEl.className = 'token-result-err';
         if (err.name === 'TypeError' && err.message.includes('fetch')) {
           resultEl.innerHTML = `
-        CORS 오류 — 브라우저 직접 요청 차단됨<br><br>
-        <strong>해결:</strong> 터미널에서 아래 명령 실행 후 다시 시도하세요:<br>
-        <code style="background:#1a1a1a;padding:3px 6px;border-radius:4px;display:inline-block;margin-top:4px;">
-          node "d:\\01 WORK\\260331 scienceon_NTIS\\proxy-server.js"
-        </code>
+        연결 오류 — 프록시 서버 또는 API 서버에 접속할 수 없습니다.<br><br>
+        <strong>해결:</strong><br>
+        - 로컬: <code style="background:#1a1a1a;padding:3px 6px;border-radius:4px;display:inline-block;margin-top:4px;">node proxy-server.js</code> 실행 확인<br>
+        - 배포: Cloudflare Worker 설정 및 도메인 연결 확인
       `;
         } else {
           resultEl.textContent = `오류: ${err.message}`;
         }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<iconify-icon icon="solar:key-square-bold-duotone" width="18"></iconify-icon> Access Token 자동 발급';
       }
-
-      btn.disabled = false;
-      btn.innerHTML = '<iconify-icon icon="solar:key-square-bold-duotone" width="18"></iconify-icon> Access Token 자동 발급';
     }
 
     // ============================================================
