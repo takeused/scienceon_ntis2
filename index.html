@@ -4756,8 +4756,7 @@ Respond ONLY with:
         let rawItems = await fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect);
         if (rawItems.length === 0) {
           addBudgetLog('⚠️', '키워드 검색 결과가 없습니다. 과제명 핵심어로 재검색을 시도합니다.');
-          const fallbackWords = projName.split(/[\s,]+/).filter(w => w.length >= 2).slice(0, 3);
-          const fallbackKeywords = fallbackWords.length ? [fallbackWords.join(' '), projName] : [projName];
+          const fallbackKeywords = [projName]; 
           rawItems = await fetchNTISForBudget(fallbackKeywords, durationYears, rndPhase, bizSect);
         }
 
