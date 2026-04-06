@@ -438,6 +438,212 @@
     .search-icon-wrap { position: relative; width: 100%; max-width: 650px; }
     .search-icon-wrap .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af; z-index: 10; }
     .modal-box-wide { max-width: 760px; width: 95vw; }
+
+    /* =========================================================
+       적정 연구비 산출 기능 스타일
+    ========================================================= */
+    .budget-modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .budget-modal-box {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+    }
+    .budget-result-box {
+      max-width: 920px;
+    }
+    .budget-step-bar {
+      display: flex; gap: 4px; margin-bottom: 1.5rem;
+    }
+    .budget-step {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: #f3f4f6;
+      transition: background 0.3s;
+    }
+    .budget-step.done { background: #22c55e; }
+    .budget-step.active { background: #7c3aed; animation: pulse 1.2s ease infinite; }
+    .budget-input-group {
+      margin-bottom: 1rem;
+    }
+    .budget-input-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.375rem;
+      display: block;
+    }
+    .budget-input-label span {
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: #9ca3af;
+      margin-left: 4px;
+    }
+    .budget-input {
+      width: 100%;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.7rem 0.875rem;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .budget-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.08); }
+    .budget-select-group {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .budget-select {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.875rem;
+      outline: none;
+      background: #fff;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      width: 100%;
+    }
+    .budget-select:focus { border-color: #7c3aed; }
+    .btn-budget {
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.8rem 1.75rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    .btn-budget:hover { background: #333; transform: translateY(-1px); }
+    .btn-budget:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .budget-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .budget-kpi-card {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .budget-kpi-card.primary {
+      background: linear-gradient(135deg, #111 0%, #333 100%);
+      color: #fff;
+      border-color: transparent;
+    }
+    .budget-kpi-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+      margin-bottom: 0.5rem;
+    }
+    .budget-kpi-card.primary .budget-kpi-label { color: rgba(255,255,255,0.6); }
+    .budget-kpi-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #111;
+      line-height: 1.2;
+    }
+    .budget-kpi-card.primary .budget-kpi-value { color: #fff; }
+    .budget-kpi-sub {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+    .budget-kpi-card.primary .budget-kpi-sub { color: rgba(255,255,255,0.7); }
+    .budget-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+    .budget-table th {
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      font-weight: 600;
+      color: #6b7280;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .budget-table td {
+      border-bottom: 1px solid #f3f4f6;
+      padding: 0.75rem;
+      color: #374151;
+      vertical-align: top;
+    }
+    .budget-table tr:last-child td { border-bottom: none; }
+    .budget-table tr:hover td { background: #fafafa; }
+    .budget-score-bar {
+      height: 6px;
+      background: #f3f4f6;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .budget-score-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #4f46e5);
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+    .budget-process-log {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+      font-family: 'Pretendard', monospace;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+    }
+    .budget-log-line {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-bottom: 4px;
+      animation: fadeUp 0.3s ease;
+    }
+    .budget-log-icon { flex-shrink: 0; margin-top: 1px; }
+    .btn-budget-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-budget-secondary:hover { background: #e5e7eb; }
   </style>
 </head>
 
@@ -538,6 +744,10 @@
             <iconify-icon icon="solar:graph-up-bold-duotone" width="16"></iconify-icon>
             기술사업화 유망 분야 도출
           </button>
+          <button type="button" onclick="openBudgetModal()" class="btn-secondary">
+            <iconify-icon icon="solar:calculator-bold-duotone" width="16"></iconify-icon>
+            적정 연구비 산출
+          </button>
         </div>
       </div>
 
@@ -629,6 +839,10 @@
         <button type="button" onclick="runTechCommerceAnalysis()" class="btn-secondary text-xs">
           <iconify-icon icon="solar:graph-up-bold-duotone" width="14"></iconify-icon>
           기술사업화 유망 분야 도출
+        </button>
+        <button type="button" onclick="openBudgetModal()" class="btn-secondary text-xs">
+          <iconify-icon icon="solar:calculator-bold-duotone" width="14"></iconify-icon>
+          적정 연구비 산출
         </button>
         <button type="button" onclick="toggleAdvanced()" class="btn-secondary text-xs" id="advancedToggle">
           <iconify-icon icon="solar:tuning-2-bold-duotone" width="14"></iconify-icon>
@@ -4049,7 +4263,652 @@ Respond ONLY with this JSON structure:
     document.getElementById('settingsModal').addEventListener('click', function (e) {
       if (e.target === this) closeSettings();
     });
+
+    // ============================================================
+    // 📊 신규과제 적정 연구개발비 도출 기능
+    // 5단계 하이브리드 파이프라인
+    // ============================================================
+
+    // ── 모달 열기/닫기 ────────────────────────────────────────────
+    function openBudgetModal() {
+      document.getElementById('budgetInputModal').classList.remove('hidden');
+      document.getElementById('budgetProjectName').focus();
+    }
+    function closeBudgetModal() {
+      document.getElementById('budgetInputModal').classList.add('hidden');
+    }
+    function closeBudgetResult() {
+      document.getElementById('budgetResultModal').classList.add('hidden');
+    }
+
+    // ── 유틸: 연구비 포맷 (억 / 백만 원) ───────────────────────────
+    function fmtBudget(won) {
+      if (!won || isNaN(won) || won <= 0) return '-';
+      if (won >= 100000000) return (won / 100000000).toFixed(1) + '억 원';
+      if (won >= 10000000)  return (won / 10000000).toFixed(1)  + '천만 원';
+      if (won >= 1000000)   return (won / 1000000).toFixed(0)   + '백만 원';
+      return won.toLocaleString() + ' 원';
+    }
+
+    // ── 유틸: 로그 추가 ──────────────────────────────────────────
+    let budgetLog = [];
+    function addBudgetLog(icon, msg) {
+      budgetLog.push({ icon, msg });
+      const box = document.getElementById('budgetProcessLog');
+      if (!box) return;
+      box.innerHTML = budgetLog.map(l =>
+        `<div class="budget-log-line"><span class="budget-log-icon">${l.icon}</span><span>${escHtml(l.msg)}</span></div>`
+      ).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ── 유틸: 진행 바 업데이트 (1~5) ──────────────────────────────
+    function setBudgetStep(step) {
+      for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`budgetStep${i}`);
+        if (!el) continue;
+        el.className = 'budget-step ' + (i < step ? 'done' : i === step ? 'active' : '');
+      }
+      const label = [
+        '', 'Step 1: AI 키워드 추출 중...', 'Step 2: NTIS 과제 수집 중...', 'Step 3: 연간 정규화 + 이상치 제거 중...',
+        'Step 4: AI 유사도 평가 중...', 'Step 5: 적정 연구비 산출 중...'
+      ][step] || '';
+      const lbl = document.getElementById('budgetStepLabel');
+      if (lbl) lbl.textContent = label;
+    }
+
+    // ── Step 1: AI 키워드 추출 ───────────────────────────────────
+    async function extractKeywordsForBudget(projName, researchContent) {
+      if (!STATE.cerebrasKey) {
+        // Cerebras 없으면 입력값을 그대로 키워드로 사용
+        addBudgetLog('⚠️', 'Cerebras API 키 미설정 → 과제명 기반 기본 검색');
+        const words = projName.split(/[\s,]+/).filter(w => w.length >= 2).slice(0, 4);
+        return words.length ? [words.join(' ')] : [projName];
+      }
+
+      const systemPrompt = `You are a Korean R&D project search expert. Generate NTIS (National Science and Technology Information Service) search keywords.
+Always respond with ONLY valid JSON. No explanation.`;
+
+      const userPrompt = `New project name: "${projName}"
+Research content: "${researchContent}"
+
+Generate 3 NTIS search keyword combinations optimized for Korean R&D project search.
+Each keyword should be 2-5 Korean words, representing a slightly different angle of the research.
+
+Respond ONLY with:
+{"keywords": ["keyword1", "keyword2", "keyword3"]}`;
+
+      const resp = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${STATE.cerebrasKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama3.1-8b',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.4,
+          max_tokens: 200,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        // 401이면 Cerebras 키 오류 → 기본 검색으로 폴백
+        addBudgetLog('⚠️', `AI 키워드 추출 실패 (${resp.status}) → 과제명 기반 기본 검색`);
+        return [projName];
+      }
+
+      const data = await resp.json();
+      const raw = (data?.choices?.[0]?.message?.content || '').trim();
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) return [projName];
+      const parsed = JSON.parse(match[0]);
+      return Array.isArray(parsed?.keywords) && parsed.keywords.length
+        ? parsed.keywords.slice(0, 3)
+        : [projName];
+    }
+
+    // ── Step 2: NTIS 과제 수집 ──────────────────────────────────
+    async function fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect) {
+      if (!STATE.ntisKey) throw new Error('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.');
+
+      const allItems = [];
+      const seenIds = new Set();
+
+      for (const kw of keywords) {
+        addBudgetLog('🔍', `NTIS 검색: "${kw}"`);
+        const params = new URLSearchParams({
+          apprvKey: STATE.ntisKey,
+          collection: 'project',
+          query: kw,
+          displayCnt: 30,
+          startPosition: 1,
+          searchRnkn: 'Y',
+          naviCount: 5,
+        });
+
+        // 수행기간 필터: 사용자 희망기간 ±1년
+        if (durationYears) {
+          const minYr = Math.max(1, durationYears - 1);
+          const maxYr = durationYears + 1;
+          // NTIS addQuery로 기간 필터 (연도 제한은 최근 8년 이내)
+          const nowYr = new Date().getFullYear();
+          params.append('addQuery', `PY=${nowYr - 8}/MORE`);
+        }
+
+        try {
+          const resp = await fetch(`${PROXY_BASE}/ntis?${params.toString()}`);
+          if (!resp.ok) continue;
+          const text = await resp.text();
+          const xml = new DOMParser().parseFromString(text, 'text/xml');
+
+          const items = Array.from(xml.getElementsByTagName('ITEM'));
+          addBudgetLog('📦', `"${kw}" → ${items.length}건 수집`);
+
+          for (const item of items) {
+            const gv = tag => item.getElementsByTagName(tag)[0]?.textContent?.trim() || '';
+            const pjtId = gv('PJTID') || gv('pjtId') || gv('projId');
+            if (pjtId && seenIds.has(pjtId)) continue;
+            if (pjtId) seenIds.add(pjtId);
+
+            const projNm    = gv('PROJNM') || gv('projNm') || gv('TITLE') || '';
+            const totFund   = parseFloat(gv('TOTFUND') || gv('totFund') || '0') * 1000; // 천원 → 원
+            const fundThyr  = parseFloat(gv('FUNDTHYR') || gv('fundThyr') || '0') * 1000;
+            const prdStart  = (gv('PRDSTART') || gv('prdStart') || '').substring(0, 4);
+            const prdEnd    = (gv('PRDEND')   || gv('prdEnd')   || '').substring(0, 4);
+            const phase     = gv('RNDPHASE') || gv('rndPhase') || '';
+            const biz       = gv('BIZSECT')  || gv('bizSect')  || '';
+            const perfOrg   = gv('PERFORGNM') || gv('perfOrg') || '';
+            const absContent= gv('ABSTRACTCONTENT') || gv('absContent') || gv('ABSTRACT') || '';
+
+            // 최근 8년 이내 과제만 포함
+            const startYr = parseInt(prdStart);
+            const nowYr   = new Date().getFullYear();
+            if (prdStart && startYr < nowYr - 8) continue;
+
+            // 연간 예산 계산
+            let annualBudget = 0;
+            if (fundThyr > 0) {
+              annualBudget = fundThyr;
+            } else if (totFund > 0 && prdStart && prdEnd) {
+              const yrs = Math.max(1, parseInt(prdEnd) - parseInt(prdStart) + 1);
+              annualBudget = totFund / yrs;
+            } else if (totFund > 0) {
+              annualBudget = totFund; // 기간 미상 → 총연구비 그대로
+            }
+
+            if (annualBudget <= 0) continue; // 연구비 0 제외
+
+            // 연구개발단계 필터 (선택 시)
+            if (rndPhase && rndPhase !== 'ALL' && phase && !phase.includes(rndPhase)) continue;
+
+            // 사업구분 필터 (선택 시)
+            if (bizSect && bizSect !== 'ALL' && biz && !biz.includes(bizSect)) continue;
+
+            // 수행기간 필터: 사용자 희망기간 ±1년
+            if (durationYears && prdStart && prdEnd) {
+              const projYrs = parseInt(prdEnd) - parseInt(prdStart) + 1;
+              if (projYrs < durationYears - 1 || projYrs > durationYears + 1) continue;
+            }
+
+            allItems.push({ projNm, annualBudget, totFund, prdStart, prdEnd, phase, biz, perfOrg, absContent, pjtId });
+          }
+        } catch (e) {
+          addBudgetLog('⚠️', `"${kw}" 검색 오류: ${e.message}`);
+        }
+      }
+
+      addBudgetLog('✅', `메타 필터 후 ${allItems.length}건 확보`);
+      return allItems;
+    }
+
+    // ── Step 3: 연간 정규화 + IQR 이상치 제거 ────────────────────
+    function normalizeAndClean(items) {
+      if (items.length < 3) return items;
+
+      const budgets = items.map(i => i.annualBudget).sort((a, b) => a - b);
+      const n = budgets.length;
+      const q1 = budgets[Math.floor(n * 0.25)];
+      const q3 = budgets[Math.floor(n * 0.75)];
+      const iqr = q3 - q1;
+
+      let multiplier = 1.5;
+      let cleaned = items.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
+
+      // 3건 미만 → IQR 배수 2.0으로 완화
+      if (cleaned.length < 3) {
+        multiplier = 2.0;
+        cleaned = items.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
+      }
+
+      const removed = items.length - cleaned.length;
+      addBudgetLog('📊', `IQR 이상치 제거: ${removed}건 제외 → ${cleaned.length}건 남음 (Q1: ${fmtBudget(q1)}, Q3: ${fmtBudget(q3)})`);
+      return cleaned;
+    }
+
+    // ── Step 4: AI 유사도 평가 ───────────────────────────────────
+    async function aiSimilarityEval(projName, researchContent, items) {
+      if (!STATE.cerebrasKey || items.length <= 5) {
+        // AI 없거나 이미 5건 이하 → 그대로 반환 (균등 유사도)
+        const topN = items.slice(0, 7);
+        topN.forEach((item, i) => { item.similarity = Math.round(90 - i * 5); item.aiReason = '통계 기반 선정'; });
+        addBudgetLog('📌', `AI 평가 생략 → 통계 기반 Top ${topN.length}건 선정`);
+        return topN;
+      }
+
+      addBudgetLog('🤖', `AI 유사도 평가 중... (${items.length}건 후보)');
+
+      const candidateList = items.slice(0, 20).map((item, i) =>
+        `[${i}] ${item.projNm} | 연간 ${fmtBudget(item.annualBudget)} | ${item.prdStart}~${item.prdEnd} | ${item.perfOrg}\n초록: ${(item.absContent || '').substring(0, 100)}`
+      ).join('\n---\n');
+
+      const systemPrompt = `You are a Korean R&D budget expert. Evaluate similarity between a new project and existing NTIS projects.
+Always respond ONLY with valid JSON. No extra text.`;
+
+      const userPrompt = `New project:
+Name: "${projName}"
+Research content: "${researchContent}"
+
+Candidate NTIS projects (index: name | annual budget | period | org):
+${candidateList}
+
+Select the TOP 5 most similar projects based on:
+- Technical similarity (40%): research goals, core tech, methodology
+- Scope fit (30%): development scale (TRL), team size, output type
+- Budget rationality (20%): cost structure similarity
+- Recency (10%): prefer recent projects
+
+Respond ONLY with:
+{"selected": [
+  {"index": 0, "similarity": 88, "reason": "2-sentence explanation in Korean"}
+]}`;
+
+      try {
+        const resp = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${STATE.cerebrasKey}`,
+          },
+          body: JSON.stringify({
+            model: 'llama3.1-8b',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.3,
+            max_tokens: 800,
+          }),
+        });
+
+        if (!resp.ok) throw new Error(`Cerebras ${resp.status}`);
+
+        const data = await resp.json();
+        const raw = (data?.choices?.[0]?.message?.content || '').trim();
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI 응답 파싱 실패');
+        const parsed = JSON.parse(match[0]);
+
+        const selected = (parsed?.selected || []).slice(0, 7);
+        const result = selected
+          .map(s => {
+            const item = items[s.index];
+            if (!item) return null;
+            item.similarity = s.similarity || 80;
+            item.aiReason = s.reason || 'AI 분석';
+            return item;
+          })
+          .filter(Boolean);
+
+        addBudgetLog('✅', `AI 유사과제 ${result.length}건 선정`);
+        return result;
+      } catch (err) {
+        addBudgetLog('⚠️', `AI 평가 오류 (${err.message}) → 통계 기반으로 대체`);
+        const topN = items.slice(0, 7);
+        topN.forEach((item, i) => { item.similarity = Math.round(90 - i * 5); item.aiReason = '통계 기반 선정'; });
+        return topN;
+      }
+    }
+
+    // ── Step 5: 최종 예산 산출 ───────────────────────────────────
+    function calcBudgetRange(selectedItems) {
+      const budgets = selectedItems.map(i => i.annualBudget).sort((a, b) => a - b);
+      const n = budgets.length;
+      if (n === 0) return null;
+
+      // 중앙값
+      const median = n % 2 === 0
+        ? (budgets[n/2 - 1] + budgets[n/2]) / 2
+        : budgets[Math.floor(n/2)];
+
+      // AI 유사도 가중 평균
+      const totalWeight = selectedItems.reduce((s, i) => s + (i.similarity || 80), 0);
+      const weightedAvg = selectedItems.reduce((s, i) =>
+        s + i.annualBudget * ((i.similarity || 80) / totalWeight), 0);
+
+      // 범위 (Q1~Q3)
+      const q1 = budgets[Math.floor(n * 0.25)];
+      const q3 = budgets[Math.floor(n * 0.75)];
+
+      // 산술 평균 + 표준편차
+      const avg = budgets.reduce((s, v) => s + v, 0) / n;
+      const sd  = Math.sqrt(budgets.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / n);
+
+      return { median, weightedAvg, q1, q3, avg, sd, min: budgets[0], max: budgets[n-1], n };
+    }
+
+    // ── 결과 대시보드 렌더링 ─────────────────────────────────────
+    function renderBudgetDashboard(projName, durationYears, selectedItems, budgetRange) {
+      if (!budgetRange) {
+        showToast('유사 과제를 찾지 못했습니다. 검색어나 필터 조건을 조정해보세요.', 'warning');
+        return;
+      }
+
+      const dYrs = parseInt(durationYears) || 1;
+      const totalMin = budgetRange.q1 * dYrs;
+      const totalMax = budgetRange.q3 * dYrs;
+      const totalMedian = budgetRange.median * dYrs;
+
+      const tableHTML = selectedItems.map((item, i) => `
+        <tr>
+          <td style="font-weight:600; color:#111;">${escHtml(item.projNm || '-')}</td>
+          <td style="white-space:nowrap; font-weight:700; color:#7c3aed;">${fmtBudget(item.annualBudget)}</td>
+          <td style="white-space:nowrap; color:#6b7280;">${item.prdStart || ''}~${item.prdEnd || ''}</td>
+          <td>${escHtml((item.perfOrg || '-').substring(0, 15))}</td>
+          <td>
+            <div style="font-size:0.75rem; font-weight:600; color:#374151;">${item.similarity || '-'}점</div>
+            <div class="budget-score-bar"><div class="budget-score-fill" style="width:${item.similarity || 0}%"></div></div>
+          </td>
+          <td style="font-size:0.75rem; color:#6b7280; max-width:200px;">${escHtml((item.aiReason || '-').substring(0, 80))}</td>
+        </tr>
+      `).join('');
+
+      const logHTML = budgetLog.map(l =>
+        `<div class="budget-log-line"><span class="budget-log-icon">${l.icon}</span><span>${escHtml(l.msg)}</span></div>`
+      ).join('');
+
+      document.getElementById('budgetResultContent').innerHTML = `
+        <div style="margin-bottom:1.5rem;">
+          <h3 style="font-size:1.125rem; font-weight:700; color:#111; margin-bottom:0.25rem;">
+            ${escHtml(projName)}
+          </h3>
+          <p style="font-size:0.8125rem; color:#6b7280;">수행기간 ${dYrs}년 기준 | 유사과제 ${budgetRange.n}건 분석</p>
+        </div>
+
+        <div class="budget-kpi-grid">
+          <div class="budget-kpi-card primary">
+            <div class="budget-kpi-label">📌 적정 연간 연구비 (중앙값)</div>
+            <div class="budget-kpi-value">${fmtBudget(budgetRange.median)}</div>
+            <div class="budget-kpi-sub">이상치 영향 최소화</div>
+          </div>
+          <div class="budget-kpi-card">
+            <div class="budget-kpi-label">🤖 AI 유사도 가중 평균</div>
+            <div class="budget-kpi-value">${fmtBudget(budgetRange.weightedAvg)}</div>
+            <div class="budget-kpi-sub">유사도 높은 과제 반영</div>
+          </div>
+          <div class="budget-kpi-card">
+            <div class="budget-kpi-label">📊 제안 범위 (Q1~Q3)</div>
+            <div class="budget-kpi-value" style="font-size:1.1rem;">${fmtBudget(budgetRange.q1)}<br><span style="font-size:0.8rem;color:#9ca3af;">~</span><br>${fmtBudget(budgetRange.q3)}</div>
+            <div class="budget-kpi-sub">협상 가능 밴드</div>
+          </div>
+          <div class="budget-kpi-card">
+            <div class="budget-kpi-label">📅 총 연구비 환산 (${dYrs}년)</div>
+            <div class="budget-kpi-value" style="font-size:1.1rem;">${fmtBudget(totalMin)}<br><span style="font-size:0.8rem;color:#9ca3af;">~</span><br>${fmtBudget(totalMax)}</div>
+            <div class="budget-kpi-sub">Q1×${dYrs}년 ~ Q3×${dYrs}년</div>
+          </div>
+        </div>
+
+        <div style="background:#eff6ff; border:1px solid #dbeafe; border-radius:10px; padding:1rem; margin-bottom:1.5rem; font-size:0.8125rem; color:#1e40af;">
+          <strong>💡 해석 가이드:</strong>
+          중앙값(${fmtBudget(budgetRange.median)}/년)을 기준으로 예산을 편성하되,
+          Q1~Q3 범위(${fmtBudget(budgetRange.q1)} ~ ${fmtBudget(budgetRange.q3)}/년) 내에서 과제 특성에 맞게 조정하세요.
+          ${budgetRange.n}건의 유사 NTIS 과제 데이터를 IQR 방식으로 이상치 제거 후 분석한 결과입니다.
+        </div>
+
+        <div style="margin-bottom:1.5rem;">
+          <h4 style="font-size:0.875rem; font-weight:700; color:#374151; margin-bottom:0.75rem;">
+            📋 선정 유사과제 리스트
+          </h4>
+          <div style="overflow-x:auto;">
+            <table class="budget-table">
+              <thead>
+                <tr>
+                  <th>과제명</th>
+                  <th>연간 연구비</th>
+                  <th>수행기간</th>
+                  <th>수행기관</th>
+                  <th>유사도</th>
+                  <th>선정 사유</th>
+                </tr>
+              </thead>
+              <tbody>${tableHTML}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <details style="margin-bottom:1rem;">
+          <summary style="font-size:0.8125rem; font-weight:600; color:#6b7280; cursor:pointer; margin-bottom:0.5rem;">🔍 분석 프로세스 로그 보기</summary>
+          <div class="budget-process-log">${logHTML}</div>
+        </details>
+
+        <p style="font-size:0.7rem; color:#9ca3af; text-align:center;">
+          * 본 결과는 NTIS 공개 과제 데이터 기반 참고 자료이며, 공식 예산 심의 근거로 단독 활용은 지양해 주세요.
+        </p>
+      `;
+
+      document.getElementById('budgetResultModal').classList.remove('hidden');
+      document.getElementById('budgetInputModal').classList.add('hidden');
+    }
+
+    // ── 메인 진입점 ───────────────────────────────────────────────
+    async function runBudgetEstimation() {
+      const projName       = document.getElementById('budgetProjectName').value.trim();
+      const researchContent= document.getElementById('budgetResearchContent').value.trim();
+      const durationYears  = parseInt(document.getElementById('budgetDuration').value) || 0;
+      const rndPhase       = document.getElementById('budgetRndPhase').value;
+      const bizSect        = document.getElementById('budgetBizSect').value;
+
+      if (!projName) {
+        showToast('신규과제명을 입력해주세요.', 'warning');
+        document.getElementById('budgetProjectName').focus();
+        return;
+      }
+      if (!researchContent) {
+        showToast('핵심 연구내용을 입력해주세요.', 'warning');
+        document.getElementById('budgetResearchContent').focus();
+        return;
+      }
+      if (!STATE.ntisKey) {
+        showToast('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.', 'warning');
+        setTimeout(() => openSettings(), 600);
+        return;
+      }
+
+      // 로그 초기화
+      budgetLog = [];
+
+      // 로딩 UI
+      const runBtn = document.getElementById('budgetRunBtn');
+      runBtn.disabled = true;
+      runBtn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></span> 분석 중...';
+
+      // 진행 상황 모달 보여주기
+      document.getElementById('budgetProgressArea').classList.remove('hidden');
+      document.getElementById('budgetProcessLog').innerHTML = '';
+      setBudgetStep(1);
+
+      try {
+        // ── Step 1: AI 키워드 추출 ──────────────────────────────
+        addBudgetLog('🤖', 'Step 1: AI 키워드 최적화 시작...');
+        const keywords = await extractKeywordsForBudget(projName, researchContent);
+        addBudgetLog('✅', `추출된 키워드: ${keywords.join(', ')}`);
+
+        // ── Step 2: NTIS 과제 수집 + 메타 필터 ─────────────────
+        setBudgetStep(2);
+        addBudgetLog('📡', 'Step 2: NTIS 과제 데이터 수집 중...');
+        const rawItems = await fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect);
+
+        if (rawItems.length === 0) {
+          showToast('조건에 맞는 NTIS 과제를 찾지 못했습니다. 필터 조건을 완화하고 다시 시도해보세요.', 'warning');
+          runBtn.disabled = false;
+          runBtn.innerHTML = '<iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon> 분석 시작';
+          document.getElementById('budgetProgressArea').classList.add('hidden');
+          return;
+        }
+
+        // ── Step 3: IQR 이상치 제거 ─────────────────────────────
+        setBudgetStep(3);
+        addBudgetLog('📊', 'Step 3: 연간 정규화 + IQR 이상치 제거...');
+        const cleanedItems = normalizeAndClean(rawItems);
+
+        // ── Step 4: AI 유사도 평가 ──────────────────────────────
+        setBudgetStep(4);
+        addBudgetLog('🔬', 'Step 4: AI 4차원 유사도 평가 시작...');
+        const selectedItems = await aiSimilarityEval(projName, researchContent, cleanedItems);
+
+        // ── Step 5: 최종 예산 산출 ──────────────────────────────
+        setBudgetStep(5);
+        addBudgetLog('💰', 'Step 5: 중앙값·가중평균·범위 산출...');
+        const budgetRange = calcBudgetRange(selectedItems);
+
+        addBudgetLog('🎉', `분석 완료! 적정 연간 연구비 중앙값: ${fmtBudget(budgetRange?.median)}`);
+
+        renderBudgetDashboard(projName, durationYears, selectedItems, budgetRange);
+
+      } catch (err) {
+        console.error('[Budget]', err);
+        showToast('분석 오류: ' + err.message, 'error');
+        addBudgetLog('❌', '오류: ' + err.message);
+      } finally {
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon> 분석 시작';
+      }
+    }
+
   </script>
+
+  <!-- =========================================================
+       적정 연구비 산출 — 입력 모달
+  ========================================================== -->
+  <div id="budgetInputModal" class="budget-modal-bg hidden" onclick="if(event.target===this)closeBudgetModal()">
+    <div class="budget-modal-box">
+      <!-- 헤더 -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+        <div>
+          <h2 style="font-size:1.125rem; font-weight:700; color:#111; display:flex; align-items:center; gap:8px;">
+            <iconify-icon icon="solar:calculator-bold-duotone" width="22" style="color:#7c3aed;"></iconify-icon>
+            신규과제 적정 연구비 산출
+          </h2>
+          <p style="font-size:0.75rem; color:#9ca3af; margin-top:2px;">NTIS 과제 데이터 기반 5단계 하이브리드 파이프라인</p>
+        </div>
+        <button type="button" onclick="closeBudgetModal()" style="background:none; border:none; cursor:pointer; color:#9ca3af; font-size:1.25rem;" aria-label="닫기">
+          <iconify-icon icon="solar:close-circle-bold-duotone" width="24"></iconify-icon>
+        </button>
+      </div>
+
+      <!-- 5단계 진행 바 (분석 시작 후 표시) -->
+      <div id="budgetProgressArea" class="hidden">
+        <div class="budget-step-bar">
+          <div class="budget-step" id="budgetStep1"></div>
+          <div class="budget-step" id="budgetStep2"></div>
+          <div class="budget-step" id="budgetStep3"></div>
+          <div class="budget-step" id="budgetStep4"></div>
+          <div class="budget-step" id="budgetStep5"></div>
+        </div>
+        <p id="budgetStepLabel" style="font-size:0.8125rem; color:#7c3aed; font-weight:600; text-align:center; margin-bottom:0.75rem;"></p>
+        <div class="budget-process-log" id="budgetProcessLog"></div>
+      </div>
+
+      <!-- 입력 폼 -->
+      <div class="budget-input-group">
+        <label class="budget-input-label" for="budgetProjectName">신규과제명 <span>*필수</span></label>
+        <input id="budgetProjectName" class="budget-input" type="text" placeholder="예: 지속가능한 도심 홍수 예측 시스템 개발"
+          onkeydown="if(event.key==='Enter'){ event.preventDefault(); document.getElementById('budgetResearchContent').focus(); }">
+      </div>
+
+      <div class="budget-input-group">
+        <label class="budget-input-label" for="budgetResearchContent">핵심 연구내용 <span>*필수, 100~300자 권장</span></label>
+        <textarea id="budgetResearchContent" class="budget-input" rows="4"
+          placeholder="예: AI 기반 도시 침수 실시간 예측 모델 개발. 레이더·위성 기상데이터와 도시 하수관망 데이터를 융합하여 30분 전 침수 예측 알고리즘을 구현하고 지자체 대응 매뉴얼과 연계하는 시스템을 개발한다."></textarea>
+      </div>
+
+      <div class="budget-select-group">
+        <div>
+          <label class="budget-input-label" for="budgetDuration">희망 수행기간</label>
+          <select id="budgetDuration" class="budget-select">
+            <option value="0">기간 제한 없음</option>
+            <option value="1">1년</option>
+            <option value="2">2년</option>
+            <option value="3" selected>3년</option>
+            <option value="4">4년</option>
+            <option value="5">5년</option>
+            <option value="6">6년</option>
+          </select>
+        </div>
+        <div>
+          <label class="budget-input-label" for="budgetRndPhase">연구개발단계</label>
+          <select id="budgetRndPhase" class="budget-select">
+            <option value="ALL">전체 (제한 없음)</option>
+            <option value="기초">기초연구</option>
+            <option value="응용">응용연구</option>
+            <option value="개발">개발연구</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="budget-input-group">
+        <label class="budget-input-label" for="budgetBizSect">사업유형 <span>(선택)</span></label>
+        <select id="budgetBizSect" class="budget-select" style="max-width:300px;">
+          <option value="ALL">전체 (제한 없음)</option>
+          <option value="출연">출연연구기관</option>
+          <option value="산학연">산학연 협력</option>
+          <option value="지자체">지자체 주도</option>
+        </select>
+      </div>
+
+      <div style="background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:0.75rem; margin-bottom:1.25rem; font-size:0.75rem; color:#92400e;">
+        ℹ️ Cerebras API 키가 설정되어 있으면 AI 기반 키워드 추출 및 유사도 평가가 수행됩니다.<br>
+        미설정 시에도 NTIS 통계 기반으로 결과를 제공합니다. (NTIS API 키는 필수)
+      </div>
+
+      <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+        <button type="button" class="btn-budget-secondary" onclick="closeBudgetModal()">취소</button>
+        <button type="button" class="btn-budget" id="budgetRunBtn" onclick="runBudgetEstimation()">
+          <iconify-icon icon="solar:calculator-bold-duotone" width="18"></iconify-icon>
+          분석 시작
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       적정 연구비 산출 — 결과 모달
+  ========================================================== -->
+  <div id="budgetResultModal" class="budget-modal-bg hidden" onclick="if(event.target===this)closeBudgetResult()">
+    <div class="budget-modal-box budget-result-box">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+        <h2 style="font-size:1.125rem; font-weight:700; color:#111; display:flex; align-items:center; gap:8px;">
+          <iconify-icon icon="solar:money-bag-bold-duotone" width="22" style="color:#7c3aed;"></iconify-icon>
+          적정 연구개발비 분석 결과
+        </h2>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <button type="button" class="btn-budget-secondary" onclick="openBudgetModal()">
+            <iconify-icon icon="solar:restart-bold-duotone" width="14"></iconify-icon>
+            재분석
+          </button>
+          <button type="button" onclick="closeBudgetResult()" style="background:none; border:none; cursor:pointer; color:#9ca3af;" aria-label="닫기">
+            <iconify-icon icon="solar:close-circle-bold-duotone" width="24"></iconify-icon>
+          </button>
+        </div>
+      </div>
+      <div id="budgetResultContent"></div>
+    </div>
+  </div>
+
 </body>
 
 </html>
