@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -1160,7 +1160,7 @@
     // ── 프록시 우선순위: 로컬(3737) → Cloudflare Worker → 직접 호출(CORS 위험)
     const PROXY_BASE   = 'http://127.0.0.1:3737';
     // ★ Cloudflare Worker 배포 후 아래 URL을 실제 Worker URL로 교체하세요 ★
-    const CF_WORKER_BASE = 'https://scienceon-proxy.YOUR_CF_SUBDOMAIN.workers.dev';
+    const CF_WORKER_BASE = 'https://scienceon-proxy.takeused.workers.dev';
     const API_BASE_DIRECT    = 'https://apigateway.kisti.re.kr/openapicall.do';
     const TOKEN_URL_DIRECT   = 'https://apigateway.kisti.re.kr/tokenrequest.do';
 
@@ -1180,7 +1180,7 @@
       } catch { /* 로컬 없음 */ }
 
       // 2순위: Cloudflare Worker (배포 URL이 placeholder면 건너뜀)
-      if (!CF_WORKER_BASE.includes('YOUR_CF_SUBDOMAIN')) {
+      if (!CF_WORKER_BASE.includes('takeused')) {
         try {
           const res = await fetch(`${CF_WORKER_BASE}/health`, { signal: AbortSignal.timeout(4000) });
           if (res.ok) { ACTIVE_PROXY = 'worker'; updateProxyStatus(); return; }
@@ -1688,7 +1688,7 @@
       if (searchFd) params.append('searchFd', searchFd);
       if (addQuery)  params.append('addQuery', addQuery);
       
-      const url = `${PROXY_BASE}/ntis?${params.toString()}`;
+      const url = `${getProxyBase()}/ntis?${params.toString()}`;
       
       try {
         const resp = await fetch(url);
@@ -1733,7 +1733,7 @@
       if (!clientId || !apiKey || !macAddr || !PROXY_AVAILABLE) return;
 
       try {
-        const url = `${PROXY_BASE}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
+        const url = `${getProxyBase()}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
         const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
         const data = await resp.json();
 
@@ -1783,7 +1783,7 @@
 
         if (PROXY_AVAILABLE) {
           // ── 방법 1: 로컬 프록시 서버 사용 (AES256 서버에서 처리)
-          const url = `${PROXY_BASE}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
+          const url = `${getProxyBase()}/token?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
           const resp = await fetch(url);
           data = await resp.json();
         } else {
@@ -1882,7 +1882,7 @@
       resultEl.textContent = '암호화 방식 탐색 중... (MAC 6가지 × 암호화 7가지 = 최대 42회 시도)';
 
       try {
-        const url = `${PROXY_BASE}/token/probe?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
+        const url = `${getProxyBase()}/token/probe?client_id=${encodeURIComponent(clientId)}&api_key=${encodeURIComponent(apiKey)}&mac_address=${encodeURIComponent(macAddr)}`;
         const resp = await fetch(url);
         const data = await resp.json();
 
@@ -2195,7 +2195,7 @@ Respond ONLY with this JSON structure:
       const fetchNTIS = async () => {
         if (!STATE.ntisKey) return null;
         try {
-          const url = `${PROXY_BASE}/ntis?apprvKey=${STATE.ntisKey}&collection=project&query=${encodeURIComponent(keyword)}&displayCnt=1&startPosition=1`;
+          const url = `${getProxyBase()}/ntis?apprvKey=${STATE.ntisKey}&collection=project&query=${encodeURIComponent(keyword)}&displayCnt=1&startPosition=1`;
           const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
           const text = await resp.text();
           return new DOMParser().parseFromString(text, 'text/xml');
@@ -3180,7 +3180,7 @@ Respond ONLY with this JSON structure:
         const fetchNTIS = async (rowCount = 1) => {
           if (!STATE.ntisKey) return null;
           try {
-            const url = `${PROXY_BASE}/ntis?apprvKey=${STATE.ntisKey}&collection=project&query=${encodeURIComponent(query)}&displayCnt=${rowCount}&startPosition=1`;
+            const url = `${getProxyBase()}/ntis?apprvKey=${STATE.ntisKey}&collection=project&query=${encodeURIComponent(query)}&displayCnt=${rowCount}&startPosition=1`;
             const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
             const text = await resp.text();
             return new DOMParser().parseFromString(text, 'text/xml');
@@ -3518,7 +3518,7 @@ Respond ONLY with this JSON structure:
       try {
         let data;
         if (PROXY_AVAILABLE) {
-          const url = `${PROXY_BASE}/token/refresh?client_id=${encodeURIComponent(STATE.clientId)}&refresh_token=${encodeURIComponent(STATE.refreshToken)}`;
+          const url = `${getProxyBase()}/token/refresh?client_id=${encodeURIComponent(STATE.clientId)}&refresh_token=${encodeURIComponent(STATE.refreshToken)}`;
           const resp = await fetch(url);
           data = await resp.json();
         } else {
@@ -4160,7 +4160,7 @@ Respond ONLY with this JSON structure:
           collection: collection,
           topN: 10,
         });
-        const resp = await fetch(`${PROXY_BASE}/ntis/connection?${params}`);
+        const resp = await fetch(`${getProxyBase()}/ntis/connection?${params}`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
 
@@ -4401,7 +4401,7 @@ Respond ONLY with:
         }
 
         try {
-          const resp = await fetch(`${PROXY_BASE}/ntis?${params.toString()}`);
+          const resp = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
           if (!resp.ok) continue;
           const text = await resp.text();
           const xml = new DOMParser().parseFromString(text, 'text/xml');
