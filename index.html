@@ -4332,8 +4332,11 @@ Always respond with ONLY valid JSON. No explanation.`;
       const userPrompt = `New project name: "${projName}"
 Research content: "${researchContent}"
 
-Generate 3 NTIS search keyword combinations optimized for Korean R&D project search.
-Each keyword should be 2-5 Korean words, representing a slightly different angle of the research.
+Generate 3 NTIS search keyword combinations optimized for searching similar Korean R&D projects.
+1. FOCUS primarily on the core technology and domain found in the Project Name.
+2. The Research Content is only for technical context—do not include rare or too many specific terms from it.
+3. Each keyword combination should be 2-3 words (e.g., "AI 재난안전 플랫폼").
+4. One of the combinations should be the core part of the Project Name itself.
 
 Respond ONLY with:
 {"keywords": ["keyword1", "keyword2", "keyword3"]}`;
@@ -4750,7 +4753,13 @@ Respond ONLY with:
         // ── Step 2: NTIS 과제 수집 + 메타 필터 ─────────────────
         setBudgetStep(2);
         addBudgetLog('📡', 'Step 2: NTIS 과제 데이터 수집 중...');
-        const rawItems = await fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect);
+        let rawItems = await fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect);
+        if (rawItems.length === 0) {
+          addBudgetLog('⚠️', '키워드 검색 결과가 없습니다. 과제명 핵심어로 재검색을 시도합니다.');
+          const fallbackWords = projName.split(/[\s,]+/).filter(w => w.length >= 2).slice(0, 3);
+          const fallbackKeywords = fallbackWords.length ? [fallbackWords.join(' '), projName] : [projName];
+          rawItems = await fetchNTISForBudget(fallbackKeywords, durationYears, rndPhase, bizSect);
+        }
 
         if (rawItems.length === 0) {
           showToast('조건에 맞는 NTIS 과제를 찾지 못했습니다. 필터 조건을 완화하고 다시 시도해보세요.', 'warning');
