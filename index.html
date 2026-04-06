@@ -4471,11 +4471,12 @@ Respond ONLY with:
             const totFund  = parseFloat(gv('TotalFunds') || gv('TOTFUND') || '0');
             const fundThyr = parseFloat(gv('GovernmentFunds') || gv('FUNDTHYR') || '0');
 
-            const prdStart  = (gv('ProjectStartYear') || gv('PRDSTART') || '').substring(0, 4);
-            const prdEnd    = (gv('ProjectEndYear') || gv('PRDEND') || '').substring(0, 4);
+            // 실제 NTIS XML 구조: <ProjectPeriod><Start>YYYYMM</Start><End>YYYYMM</End></ProjectPeriod>
+            const prdStart  = (gv('ProjectPeriod', 'Start') || gv('ProjectStartYear') || gv('PRDSTART') || '').substring(0, 4);
+            const prdEnd    = (gv('ProjectPeriod', 'End')   || gv('ProjectEndYear')   || gv('PRDEND')   || '').substring(0, 4);
             const phase     = gv('ResearchPhase') || gv('RNDPHASE') || '';
             const biz       = gv('BusinessSector') || gv('BIZSECT') || '';
-            const perfOrg   = gv('PerformingOrganization', 'Name') || gv('PERFORGNM') || '';
+            const perfOrg   = gv('ResearchAgency', 'Name') || gv('PerformingOrganization', 'Name') || gv('PERFORGNM') || '';
             const absContent= gv('Abstract') || gv('ABSTRACTCONTENT') || '';
 
             // [Step 2] 정책 메타데이터 필터링
@@ -4496,20 +4497,19 @@ Respond ONLY with:
             // 사업유형 필터
             if (bizSect && bizSect !== '전체' && bizSect !== 'ALL' && biz && !biz.includes(bizSect)) continue;
 
-            // ── 연간 예산 산출 (B1+B4 핵심 수정) ──────────────────────
+            // ── 연간 예산 산출 ──────────────────────────────────────
             // 1순위: totFund / 수행연수 (평균 연간 예산, 가장 신뢰도 높음)
             // 2순위: fundThyr (당해연도 예산, 연차 편차 있음을 감안)
-            // 기간 정보 없이 totFund만 있으면 연간화 불가 → 제외
+            // 기간 미상이면 국내 R&D 평균 3년 가정 (제외하지 않고 경고 태그 부여)
             let annualBudget = 0;
             let budgetSource = '';
             if (totFund > 0 && hasPeriod) {
               annualBudget = totFund / projYrs;
               budgetSource = 'avg';
             } else if (totFund > 0 && !hasPeriod) {
-              // 기간 미상: 총연구비를 연간화할 수 없으므로 제외
-              continue;
+              annualBudget = totFund / 3;   // 기간 미상 → 3년 가정
+              budgetSource = 'est';
             } else if (fundThyr > 0) {
-              // totFund 없고 당해연도 예산만 있는 경우 (참고값으로 사용)
               annualBudget = fundThyr;
               budgetSource = 'thyr';
             }
@@ -4733,6 +4733,8 @@ Respond ONLY with:
           : `<div style="font-size:0.7rem; color:#9ca3af;">AI 미평가</div>`;
         const sourceTag = item.budgetSource === 'thyr'
           ? `<span style="font-size:0.65rem; color:#f59e0b; background:#fffbeb; border:1px solid #fde68a; border-radius:3px; padding:1px 4px; margin-left:4px;">당해연도</span>`
+          : item.budgetSource === 'est'
+          ? `<span style="font-size:0.65rem; color:#6b7280; background:#f3f4f6; border:1px solid #d1d5db; border-radius:3px; padding:1px 4px; margin-left:4px;">기간미상/3년가정</span>`
           : '';
         return `
         <tr>
