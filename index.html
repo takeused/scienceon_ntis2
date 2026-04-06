@@ -4738,6 +4738,9 @@ Respond ONLY with:
         : '';
 
       // ── 과제 테이블 ─────────────────────────────────────────────
+      // projNm에는 NTIS 검색 하이라이트 태그(<span class="search_word">)가 포함될 수 있으므로 제거
+      const stripTags = (html) => (html || '').replace(/<[^>]*>/g, '');
+
       const tableHTML = selectedItems.map((item) => {
         const simDisplay = item.similarity !== null
           ? `<div style="font-size:0.75rem; font-weight:600; color:#374151;">${item.similarity}점</div>
@@ -4748,12 +4751,27 @@ Respond ONLY with:
           : item.budgetSource === 'est'
           ? `<span style="font-size:0.65rem; color:#6b7280; background:#f3f4f6; border:1px solid #d1d5db; border-radius:3px; padding:1px 4px; margin-left:4px;">기간미상/3년가정</span>`
           : '';
+
+        const cleanNm = escHtml(stripTags(item.projNm) || '-');
+        const ntisUrl = item.pjtId
+          ? `https://www.ntis.go.kr/project/pjtInfo.do?pjtId=${encodeURIComponent(item.pjtId)}&pageCode=TH_PJT_PJT_DTL`
+          : '';
+        const nameCell = ntisUrl
+          ? `<a href="${ntisUrl}" target="_blank" rel="noopener"
+               style="font-weight:600; color:#111; text-decoration:none; display:block;"
+               onmouseover="this.style.color='#7c3aed';this.style.textDecoration='underline';"
+               onmouseout="this.style.color='#111';this.style.textDecoration='none';"
+               title="NTIS 상세 보기">${cleanNm}
+               <iconify-icon icon="solar:arrow-right-up-linear" width="11" style="color:#9ca3af; vertical-align:middle; margin-left:2px;"></iconify-icon>
+             </a>`
+          : `<span style="font-weight:600; color:#111;">${cleanNm}</span>`;
+
         return `
         <tr>
-          <td style="font-weight:600; color:#111;">${escHtml(item.projNm || '-')}</td>
+          <td>${nameCell}</td>
           <td style="white-space:nowrap; font-weight:700; color:#7c3aed;">${fmtBudget(item.annualBudget)}${sourceTag}</td>
           <td style="white-space:nowrap; color:#6b7280;">${item.prdStart || '?'}~${item.prdEnd || '?'}${item.projYrs ? ` (${item.projYrs}년)` : ''}</td>
-          <td>${escHtml((item.perfOrg || '-').substring(0, 15))}</td>
+          <td>${escHtml((stripTags(item.perfOrg) || '-').substring(0, 15))}</td>
           <td>${simDisplay}</td>
           <td style="font-size:0.75rem; color:#6b7280; max-width:200px;">${escHtml((item.aiReason || '-').substring(0, 80))}</td>
         </tr>`;
