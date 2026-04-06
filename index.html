@@ -4314,6 +4314,7 @@ Respond ONLY with this JSON structure:
 
     // ── 유틸: 로그 추가 ──────────────────────────────────────────
     let budgetLog = [];
+    let _budgetReportData = null;   // 마지막 분석 결과 저장 (보고서 생성용)
     function addBudgetLog(icon, msg) {
       budgetLog.push({ icon, msg });
       const box = document.getElementById('budgetProcessLog');
@@ -4884,13 +4885,182 @@ Respond ONLY with:
           <div class="budget-process-log">${logHTML}</div>
         </details>
 
-        <p style="font-size:0.7rem; color:#9ca3af; text-align:center;">
-          * 본 결과는 NTIS 공개 과제 데이터 기반 참고 자료이며, 공식 예산 심의 근거로 단독 활용은 지양해 주세요.
-        </p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem; padding-top:1rem; border-top:1px solid #f3f4f6;">
+          <p style="font-size:0.7rem; color:#9ca3af;">
+            * 본 결과는 NTIS 공개 과제 데이터 기반 참고 자료이며, 공식 예산 심의 근거로 단독 활용은 지양해 주세요.
+          </p>
+          <button type="button" class="btn-budget-secondary" onclick="showBudgetReport()"
+            style="white-space:nowrap; display:flex; align-items:center; gap:0.375rem; flex-shrink:0; margin-left:1rem;">
+            <iconify-icon icon="solar:document-text-bold-duotone" width="15" style="color:#7c3aed;"></iconify-icon>
+            기획보고서 초안 복사
+          </button>
+        </div>
       `;
 
       document.getElementById('budgetProgressArea').classList.add('hidden');
       document.getElementById('budgetResultModal').classList.remove('hidden');
+
+      // 보고서 생성을 위해 결과 저장
+      _budgetReportData = { projName, durationYears: dYrs, selectedItems, budgetRange };
+    }
+
+    // ── 기획보고서 초안 생성 ─────────────────────────────────────
+    function generateBudgetReportText({ projName, durationYears, selectedItems, budgetRange }) {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+      const dYrs = parseInt(durationYears) || 1;
+      const br = budgetRange;
+      const stripTags = (s) => (s || '').replace(/<[^>]*>/g, '');
+
+      const confidenceLabel = { A: 'A등급 (신뢰도 높음)', B: 'B등급 (신뢰도 보통)', C: 'C등급 (표본 부족 — 참고용)' };
+
+      // 근거 과제 표
+      const tableRows = selectedItems.map((item, i) => {
+        const nm   = stripTags(item.projNm || '-').substring(0, 40);
+        const org  = stripTags(item.perfOrg || '-').substring(0, 12);
+        const period = item.prdStart && item.prdEnd ? `${item.prdStart}~${item.prdEnd}` : '기간미상';
+        const budget = fmtBudget(item.annualBudget);
+        const sim  = item.similarity !== null ? `${item.similarity}점` : 'AI미평가';
+        const reason = (item.aiReason || '-').replace(/\n/g, ' ').substring(0, 50);
+        return `  ${String(i+1).padStart(2)}. ${nm.padEnd(40)} | ${budget.padEnd(10)} | ${period.padEnd(12)} | ${org.padEnd(12)} | ${sim.padEnd(7)} | ${reason}`;
+      }).join('\n');
+
+      const rangeDesc = br.n >= 10
+        ? `Q1~Q3 범위: ${fmtBudget(br.q1)} ~ ${fmtBudget(br.q3)} (표본 ${br.n}건 기준)`
+        : `참고 범위(Min~Max): ${fmtBudget(br.min)} ~ ${fmtBudget(br.max)} (표본 ${br.n}건, 통계적 신뢰도 제한)`;
+
+      const weightedDesc = br.weightedAvg !== null
+        ? `AI 유사도 가중평균: ${fmtBudget(br.weightedAvg)} (유사도 점수 반영)`
+        : `산술 평균: ${fmtBudget(br.avg)} (AI 미평가)`;
+
+      return `
+■ 신규과제 적정 연구개발비 산출 보고서
+${'='.repeat(64)}
+□ 분석 과제명: ${projName}
+□ 분석 일시  : ${dateStr}
+□ 데이터 출처: 국가과학기술지식정보서비스(NTIS) 공개 과제 DB
+□ 분석 방법  : NTIS 통계 기반 + AI 하이브리드 5단계 파이프라인 (v2)
+
+${'─'.repeat(64)}
+1. 분석 방법 및 절차
+${'─'.repeat(64)}
+
+본 분석은 NTIS(국가과학기술지식정보서비스) 공개 과제 데이터를
+활용한 5단계 하이브리드 파이프라인으로 수행되었습니다.
+
+  [Step 1] AI 키워드 추출 및 후보 확보
+    - 과제명에서 핵심 기술 키워드를 AI(LLaMA 기반)가 추출
+    - NTIS 과제명(projNm) 필드 대상 복수 쿼리 실행
+    - 목표 후보: 30~50건 확보
+
+  [Step 2] 정책 메타데이터 필터링
+    - 최근 8년 이내 과제로 한정 (시점 적합성 확보)
+    - 연구개발단계, 사업유형, 수행기간 기준으로 동질 과제 선별
+
+  [Step 3] 연간 예산 정규화 + IQR 이상치 제거
+    - 총연구비(totFund) ÷ 수행연수 → 연간 예산 환산
+    - IQR(사분위수 범위) 통계 기법으로 극단 이상치 제거
+    - IQR × 1.5 범위 초과 과제 자동 제외
+
+  [Step 4] AI 4차원 유사도 평가 (과제명 기반)
+    - 기술적 유사성  45% : 연구 목표·핵심 기술·방법론 일치도
+    - 규모·범위 적합 30% : TRL 단계, 성과물 유형 유사도
+    - 최신성·정책 부합 15% : 최근 과제 우선, 정책 방향 부합
+    - 사업유형 일치  10% : 수행 구조(출연연/산학연 등) 유사성
+
+  [Step 5] 최종 적정 연구비 산출
+    - 중앙값   : 이상치 영향 최소화 → 기준값(Primary)
+    - 가중평균 : AI 유사도 점수를 가중치로 반영
+    - 범위     : Q1~Q3 (표본 10건 이상 시) 또는 Min~Max
+
+${'─'.repeat(64)}
+2. 산출 결과
+${'─'.repeat(64)}
+
+  ○ 적정 연간 연구비 (중앙값 기준) : ${fmtBudget(br.median)}
+  ○ ${rangeDesc}
+  ○ ${weightedDesc}
+  ○ 총 연구비 추정 (${dYrs}년 기준)  : ${fmtBudget(br.median * dYrs)}
+     - 범위: ${fmtBudget(br.min * dYrs)} ~ ${fmtBudget(br.max * dYrs)}
+
+  [분석 품질 지표]
+  ○ 유효 표본 수   : ${br.n}건
+  ○ 신뢰 등급      : ${confidenceLabel[br.confidence] || br.confidence}
+  ○ 변동계수(CV)   : ${Math.round(br.cv)}% ${br.cv >= 50 ? '⚠ 편차 높음 — 이기종 과제 혼재 가능' : '(양호)'}
+  ${br.avgSimilarity !== null ? `○ AI 유사도 평균  : ${br.avgSimilarity}점 ${br.avgSimilarity < 65 ? '⚠ 유사도 낮음' : ''}` : '○ AI 유사도 평균  : AI 미평가'}
+
+${'─'.repeat(64)}
+3. 근거 과제 목록 (유사과제 Top-${selectedItems.length})
+${'─'.repeat(64)}
+
+  No. 과제명                                     | 연간연구비   | 수행기간      | 수행기관      | 유사도   | 선정 사유(요약)
+  ${'─'.repeat(120)}
+${tableRows}
+
+${'─'.repeat(64)}
+4. 해석 및 활용 방안
+${'─'.repeat(64)}
+
+  ○ 제안 예산 기준값: ${fmtBudget(br.median)}/년
+     위 중앙값을 신규과제의 연간 연구비 기준으로 활용하되,
+     과제 고유 특성(신규 장비 구축, 대규모 실증 등)을 감안하여
+     ${rangeDesc.split('범위:').pop().trim()} 내에서 조정하는 것을 권장합니다.
+
+  ○ 총 연구비 편성 참고값: ${fmtBudget(br.median * dYrs)} (${dYrs}년 기준 중앙값)
+     사업 특성에 따라 초기 집중형 또는 균등 배분형 연차 계획을
+     별도 수립하시기 바랍니다.
+
+  ○ 유의 사항
+     - 변동계수 ${Math.round(br.cv)}%: ${br.cv >= 50 ? '편차가 높아 단일 대표값 사용 시 주의가 필요합니다.' : '분포가 비교적 안정적입니다.'}
+     - 표본 ${br.n}건 기반 분석으로, ${br.n < 10 ? '표본 수가 적어 통계적 대표성이 제한될 수 있습니다.' : '충분한 표본으로 통계적 신뢰도를 확보했습니다.'}
+     - 본 결과는 NTIS 공개 데이터 기반 참고 자료입니다.
+       공식 예산 심의 시 추가적인 전문가 검토를 병행하시기 바랍니다.
+
+${'─'.repeat(64)}
+5. 근거 자료 출처
+${'─'.repeat(64)}
+
+  - 데이터: 국가과학기술지식정보서비스(NTIS) 통합검색 오픈 API
+    (https://www.ntis.go.kr)
+  - 분석 도구: ScienceON NTIS 검색 시스템 내 적정 연구비 산출 모듈
+  - 분석 기준일: ${dateStr}
+  - AI 엔진: Cerebras LLaMA (키워드 추출·유사도 평가)
+
+${'='.repeat(64)}
+※ 본 보고서는 NTIS 공개 과제 데이터를 기반으로 자동 생성된
+   참고 자료입니다. 최종 예산 편성 시 관련 부처 지침 및 내부
+   심의 기준을 우선 적용하시기 바랍니다.
+${'='.repeat(64)}
+`.trim();
+    }
+
+    function showBudgetReport() {
+      if (!_budgetReportData) {
+        showToast('먼저 분석을 실행해주세요.', 'warning');
+        return;
+      }
+      const text = generateBudgetReportText(_budgetReportData);
+      document.getElementById('budgetReportText').value = text;
+      document.getElementById('budgetReportModal').classList.remove('hidden');
+    }
+
+    function closeBudgetReport() {
+      document.getElementById('budgetReportModal').classList.add('hidden');
+    }
+
+    async function copyBudgetReport() {
+      const ta = document.getElementById('budgetReportText');
+      try {
+        await navigator.clipboard.writeText(ta.value);
+        showToast('보고서가 클립보드에 복사됐습니다.', 'success');
+        const btn = document.getElementById('budgetReportCopyBtn');
+        btn.innerHTML = '<iconify-icon icon="solar:check-circle-bold-duotone" width="15"></iconify-icon> 복사됨';
+        setTimeout(() => { btn.innerHTML = '<iconify-icon icon="solar:copy-bold-duotone" width="15"></iconify-icon> 전체 복사'; }, 2000);
+      } catch {
+        ta.select();
+        document.execCommand('copy');
+        showToast('보고서가 클립보드에 복사됐습니다.', 'success');
+      }
     }
 
     // ── 메인 진입점 ───────────────────────────────────────────────
@@ -5017,6 +5187,36 @@ Respond ONLY with:
       </div>
 
       <div id="budgetResultContent"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       적정 연구비 — 기획보고서 초안 모달
+  ========================================================== -->
+  <div id="budgetReportModal" class="budget-modal-bg hidden" onclick="if(event.target===this)closeBudgetReport()">
+    <div class="budget-modal-box" style="max-width:780px; width:95vw;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <h2 style="font-size:1.05rem; font-weight:700; color:#111; display:flex; align-items:center; gap:8px;">
+          <iconify-icon icon="solar:document-text-bold-duotone" width="20" style="color:#7c3aed;"></iconify-icon>
+          기획보고서 초안
+        </h2>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <button id="budgetReportCopyBtn" type="button" class="btn-budget" onclick="copyBudgetReport()"
+            style="display:flex; align-items:center; gap:0.375rem; font-size:0.8125rem; padding:0.45rem 0.9rem;">
+            <iconify-icon icon="solar:copy-bold-duotone" width="15"></iconify-icon> 전체 복사
+          </button>
+          <button type="button" onclick="closeBudgetReport()" style="background:none; border:none; cursor:pointer; color:#9ca3af;" aria-label="닫기">
+            <iconify-icon icon="solar:close-circle-bold-duotone" width="24"></iconify-icon>
+          </button>
+        </div>
+      </div>
+      <p style="font-size:0.75rem; color:#6b7280; margin-bottom:0.75rem;">
+        아래 내용을 그대로 복사하여 기획보고서(HWP·Word·Docs)에 붙여넣기 하세요.
+      </p>
+      <textarea id="budgetReportText" readonly aria-label="기획보고서 초안 내용"
+        style="width:100%; height:60vh; font-family:'Pretendard','Malgun Gothic',monospace; font-size:0.78rem; line-height:1.7;
+               border:1px solid #e5e7eb; border-radius:0.75rem; padding:1rem; resize:vertical;
+               background:#fafafa; color:#1f2937; white-space:pre; overflow:auto;"></textarea>
     </div>
   </div>
 
