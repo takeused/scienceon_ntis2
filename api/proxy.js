@@ -87,9 +87,11 @@ function jsonRes(res, statusCode, obj) {
   res.status(statusCode).json(obj);
 }
 
-function setEdgeCache(res, seconds = 86400) {
-  // Vercel Edge Network 캐싱 최적화
-  res.setHeader('Cache-Control', `public, s-maxage=${seconds}, stale-while-revalidate=${seconds * 2}`);
+function setNoCache(res) {
+  // Vercel Edge Network 및 브라우저 캐싱 완전 비활성화
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 }
 
 module.exports = async (req, res) => {
@@ -200,7 +202,7 @@ module.exports = async (req, res) => {
       const result = await httpsGet(apiPath);
       const isXml = result.body.trim().startsWith('<?xml') || result.body.trim().startsWith('<');
       setCORS(res);
-      setEdgeCache(res, 3600); // 검색 결과 1시간 캐싱
+      setNoCache(res); // 검색 결과 캐싱 비활성화 (토큰 보안 및 최신 데이터 보장)
       res.setHeader('Content-Type', isXml ? 'application/xml; charset=utf-8' : 'text/plain');
       return res.status(result.status).send(result.body);
     } catch (e) {
@@ -243,7 +245,7 @@ module.exports = async (req, res) => {
       const result = await ntisGet(ntisPath);
       const isXml = result.body.trim().startsWith('<?xml') || result.body.trim().startsWith('<');
       setCORS(res);
-      setEdgeCache(res, 3600); // 검색 결과 1시간 캐싱
+      setNoCache(res); // NTIS 검색 결과 캐싱 비활성화
       res.setHeader('Content-Type', isXml ? 'application/xml; charset=utf-8' : 'text/plain; charset=utf-8');
       return res.status(result.status).send(result.body);
     } catch (e) {
@@ -263,7 +265,7 @@ module.exports = async (req, res) => {
     try {
       const result = await ntisGet(ntisPath);
       setCORS(res);
-      setEdgeCache(res, 86400); // 연관 콘텐츠는 24시간 캐싱 (변경이 적음)
+      setNoCache(res); // 연관 콘텐츠 캐싱 비활성화 (안전제일)
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       return res.status(result.status).send(result.body);
     } catch (e) {
