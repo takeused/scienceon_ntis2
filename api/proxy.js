@@ -107,6 +107,36 @@ module.exports = async (req, res) => {
     });
   }
 
+  // ── /myip — Vercel 서버 발신 IP 확인 (NTIS IP 등록용)
+  if (pathname === '/myip') {
+    try {
+      const ip = await new Promise((resolve, reject) => {
+        const req = https.request({
+          hostname: 'api.ipify.org',
+          path: '/?format=json',
+          method: 'GET',
+          headers: { 'User-Agent': 'ScienceON-VercelProxy/1.0' },
+        }, (res) => {
+          let data = '';
+          res.on('data', c => { data += c; });
+          res.on('end', () => {
+            try { resolve(JSON.parse(data).ip); } catch { resolve(data.trim()); }
+          });
+        });
+        req.on('error', reject);
+        req.setTimeout(5000, () => req.destroy(new Error('timeout')));
+        req.end();
+      });
+      return jsonRes(res, 200, {
+        ip,
+        note: 'NTIS IP 화이트리스트 등록 시 이 IP를 사용하세요. Vercel은 리전에 따라 IP가 다를 수 있습니다.',
+        region: process.env.VERCEL_REGION || 'unknown',
+      });
+    } catch (e) {
+      return jsonRes(res, 500, { error: e.message });
+    }
+  }
+
   // ── /token
   if (pathname === '/token') {
     const { client_id, api_key, mac_address, accounts } = q;
