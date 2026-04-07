@@ -37,8 +37,8 @@
 
     // ── 프록시 우선순위: 로컬(3737) → Vercel(Seoul/icn1) → Cloudflare Worker → 직접 호출
     const PROXY_BASE     = 'http://127.0.0.1:3737';
-    // file 프로토콜 직접 접근 시 운영 Vercel, 로컬/운영 호스팅 시 동적 오리진 사용
-    const VERCEL_BASE    = window.location.protocol === 'file:' ? 'https://scienceon-ntis.vercel.app' : '';
+    // Vercel에서 직접 서빙 중이면 상대경로(''), 그 외(file:, localhost 등)는 절대 URL
+    const VERCEL_BASE    = window.location.hostname.endsWith('vercel.app') ? '' : 'https://scienceon-ntis.vercel.app';
     const CF_WORKER_BASE = 'https://scienceon-proxy.takeused.workers.dev';
     const API_BASE_DIRECT  = 'https://apigateway.kisti.re.kr/openapicall.do';
     const TOKEN_URL_DIRECT = 'https://apigateway.kisti.re.kr/tokenrequest.do';
