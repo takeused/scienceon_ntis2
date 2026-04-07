@@ -1,9 +1,0 @@
-name = "scienceon-proxy"
-main = "worker.js"
-compatibility_date = "2024-01-01"
-
-# Workers 무료 플랜: 하루 10만 요청 / 분당 1000 req
-# https://developers.cloudflare.com/workers/platform/limits/
-
-# 배포 후 URL 예시:
-#   https://scienceon-proxy.{your-cf-subdomain}.workers.dev
