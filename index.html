@@ -1732,16 +1732,25 @@
         const parser = new DOMParser();
         const xml = parser.parseFromString(text, 'text/xml');
 
-        const returnCode = xml.querySelector('returnCode')?.textContent;
-        if (returnCode && returnCode !== '0') {
-           const returnMsg = xml.querySelector('returnMsg')?.textContent || '알 수 없는 오류';
-           showToast(`NTIS 검색 오류: ${returnMsg} (${returnCode})`, 'error');
-           // 오류 응답도 화면에 표시
+        // NTIS 오류 응답 파싱: <RESULT><ERROR><CODE>/<MESSAGE> 또는 <returnCode>/<returnMsg>
+        const gx = (tag) => xml.getElementsByTagName(tag)[0]?.textContent?.trim() || '';
+        const errCode = gx('CODE') || gx('returnCode');
+        const errMsg  = gx('MESSAGE') || gx('returnMsg');
+        if (errCode && errCode !== '0') {
+           const isIpBlock = errMsg.includes('IP');
+           showToast(`NTIS 오류 [${errCode}]: ${errMsg}`, 'error');
            document.getElementById('emptyState').classList.add('hidden');
-           document.getElementById('resultsGrid').innerHTML = `<div class="p-4 rounded-xl" style="border:1px solid rgba(239,68,68,0.3);">
-             <p class="text-red-400 font-semibold">NTIS API 오류 [${escHtml(returnCode)}]</p>
-             <p class="text-gray-400 text-sm mt-1">${escHtml(returnMsg)}</p>
-             <p class="text-xs text-gray-600 mt-2 break-all">요청 URL: ${escHtml(url)}</p>
+           document.getElementById('resultsGrid').innerHTML = `<div class="p-5 rounded-2xl" style="border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.05);">
+             <p class="text-red-400 font-semibold mb-1">NTIS API 오류 [${escHtml(errCode)}]</p>
+             <p class="text-gray-300 text-sm mb-3">${escHtml(errMsg)}</p>
+             ${isIpBlock ? `<div class="p-3 rounded-lg text-xs space-y-1" style="background:rgba(0,0,0,0.3);">
+               <p class="text-yellow-300 font-semibold">IP 차단 해결 방법</p>
+               <p class="text-gray-400">Cloudflare Worker IP는 NTIS에 등록되지 않아 차단됩니다.</p>
+               <p class="text-green-300 mt-2 font-semibold">→ 로컬 프록시를 사용하세요:</p>
+               <code class="text-green-400 block mt-1">node proxy-server.js</code>
+               <p class="text-gray-500 mt-1">실행 후 페이지를 새로고침하면 로컬 프록시(127.0.0.1:3737)로 자동 전환됩니다.</p>
+             </div>` : ''}
+             <p class="text-xs text-gray-600 mt-3 break-all">요청 URL: ${escHtml(url)}</p>
            </div>`;
            setLoading(false);
            return;
@@ -3681,13 +3690,13 @@ Respond ONLY with this JSON structure:
       // getElementsByTagName 사용: querySelector는 XML 대문자 태그에 브라우저별 불안정
       const getXmlTag = (tagName) => xml.getElementsByTagName(tagName)[0] || null;
 
-      // returnCode 오류 처리: 0이 아닌 경우 오류 메시지 표시
-      const returnCode = getXmlTag('returnCode')?.textContent?.trim();
-      const returnMsg  = getXmlTag('returnMsg')?.textContent?.trim() || '';
-      console.log(`[NTIS] returnCode=${returnCode} | returnMsg=${returnMsg}`);
-      if (returnCode && returnCode !== '0') {
-        showToast(`NTIS API 오류: [${returnCode}] ${returnMsg}`, 'error');
-        console.error('[NTIS] API 오류 응답:', returnCode, returnMsg, new XMLSerializer().serializeToString(xml));
+      // NTIS 오류 응답 처리: <RESULT><ERROR><CODE>/<MESSAGE> 또는 <returnCode>/<returnMsg>
+      const errCode = getXmlTag('CODE')?.textContent?.trim() || getXmlTag('returnCode')?.textContent?.trim() || '';
+      const errMsg  = getXmlTag('MESSAGE')?.textContent?.trim() || getXmlTag('returnMsg')?.textContent?.trim() || '';
+      console.log(`[NTIS] errCode=${errCode} | errMsg=${errMsg}`);
+      if (errCode && errCode !== '0') {
+        showToast(`NTIS API 오류: [${errCode}] ${errMsg}`, 'error');
+        console.error('[NTIS] API 오류 응답:', errCode, errMsg, new XMLSerializer().serializeToString(xml));
         setLoading(false);
         return;
       }
