@@ -14,6 +14,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
 
@@ -644,6 +645,114 @@
       font-family: inherit;
     }
     .btn-budget-secondary:hover { background: #e5e7eb; }
+
+    /* ── 다크/라이트 모드 ── */
+    html.dark {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --secondary: #999999;
+      --tertiary: #666666;
+      --border: #222222;
+      --accent: #f5f5f5;
+    }
+    html.dark body { background: var(--bg); color: var(--accent); }
+    html.dark .glass-nav { background: rgba(10,10,10,0.85); }
+    html.dark .search-input { background: #1a1a1a; color: #f5f5f5; border-color: #333; }
+    html.dark .search-input::placeholder { color: #555; }
+    html.dark .result-card { background: var(--surface); border-color: var(--border); }
+    html.dark .btn-secondary { background: #1a1a1a; border-color: #333; color: #ccc; }
+    html.dark .btn-secondary:hover { background: #222; }
+    html.dark .tag { background: #1a1a1a; color: #aaa; border-color: #333; }
+    html.dark .select-field { background: #1a1a1a; border-color: #333; color: #ccc; }
+    html.dark .options-bar { background: #111; border-color: #222; }
+    html.dark .db-toggle-wrap { background: #111; border-color: #333; }
+    html.dark .db-btn { color: #888; }
+    html.dark .db-btn.active { background: #222; color: #f5f5f5; }
+    html.dark .tab-btn { color: #888; }
+    html.dark .tab-btn.active { background: #222; color: #f5f5f5; border-color: #444; }
+    html.dark .stat-card { background: #111; border-color: #222; }
+    html.dark .setup-guide { background: #111; border-color: #222; }
+    html.dark mark { background: rgba(255,255,100,0.25); color: inherit; }
+    html.dark .modal-box { background: #111; color: var(--accent); }
+    html.dark .modal-bg { background: rgba(0,0,0,0.7); }
+    html.dark input, html.dark textarea { background: #1a1a1a; color: #f5f5f5; border-color: #333; }
+
+    /* ── 검색 히스토리 드롭다운 ── */
+    .search-wrap-rel { position: relative; width: 100%; display: flex; justify-content: center; }
+    #historyDropdown {
+      position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      width: min(600px, 90vw); background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); z-index: 200;
+      overflow: hidden;
+    }
+    #historyList li {
+      padding: 0.6rem 1rem; font-size: 0.85rem; cursor: pointer; display: flex;
+      align-items: center; gap: 0.5rem; color: var(--secondary);
+      transition: background 0.1s; border-bottom: 1px solid var(--border);
+    }
+    #historyList li:last-child { border-bottom: none; }
+    #historyList li:hover { background: var(--bg); }
+    #historyList li.clear-btn { color: #ef4444; font-size: 0.75rem; justify-content: center; }
+
+    /* ── 즐겨찾기 패널 ── */
+    #favPanel {
+      position: fixed; top: 0; right: -420px; width: 420px; height: 100dvh;
+      background: var(--surface); border-left: 1px solid var(--border);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.08); z-index: 500;
+      transition: right 0.3s var(--ease); overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    #favPanel.open { right: 0; }
+    #favPanel .fav-header {
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--surface); z-index: 1;
+    }
+    .fav-card {
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.1s;
+    }
+    .fav-card:hover { background: var(--bg); }
+    #favOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+      z-index: 499; display: none;
+    }
+    #favOverlay.open { display: block; }
+
+    /* ── 연구자/기관 프로필 패널 ── */
+    #profilePanel {
+      position: fixed; top: 0; left: -460px; width: 460px; height: 100dvh;
+      background: var(--surface); border-right: 1px solid var(--border);
+      box-shadow: 8px 0 32px rgba(0,0,0,0.08); z-index: 500;
+      transition: left 0.3s var(--ease); overflow-y: auto;
+    }
+    #profilePanel.open { left: 0; }
+
+    /* ── 비교 검색 ── */
+    #compareSection { display: none; }
+    #compareSection.active { display: block; }
+    .compare-col { flex: 1; min-width: 0; }
+    .compare-divider { width: 2px; background: var(--border); flex-shrink: 0; }
+
+    /* ── 키워드 네트워크 ── */
+    #networkModal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 600; display: none; align-items: center; justify-content: center;
+    }
+    #networkModal.open { display: flex; }
+    #networkContainer { width: 100%; height: 100%; }
+    #networkContainer svg { width: 100%; height: 100%; }
+    .node circle { stroke: var(--border); stroke-width: 1.5px; cursor: pointer; }
+    .node text { font-size: 11px; fill: var(--secondary); pointer-events: none; }
+    .link { stroke: var(--border); stroke-opacity: 0.5; }
+
+    /* ── 카드 즐겨찾기 버튼 ── */
+    .fav-btn {
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: var(--tertiary); transition: color 0.15s; line-height: 1;
+    }
+    .fav-btn.active { color: #f59e0b; }
+    .fav-btn:hover { color: #f59e0b; }
   </style>
 </head>
 
@@ -664,6 +773,21 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <!-- 다크/라이트 모드 토글 -->
+          <button type="button" id="themeToggle" onclick="toggleTheme()" class="btn-secondary" title="다크/라이트 모드 전환">
+            <iconify-icon id="themeIcon" icon="solar:moon-bold-duotone" width="16"></iconify-icon>
+          </button>
+          <!-- 즐겨찾기 -->
+          <button type="button" onclick="openFavPanel()" class="btn-secondary" title="즐겨찾기">
+            <iconify-icon icon="solar:bookmark-bold-duotone" width="16"></iconify-icon>
+            <span class="hidden sm:inline">즐겨찾기</span>
+            <span id="favCount" class="hidden text-xs bg-amber-400 text-black rounded-full px-1.5 font-bold"></span>
+          </button>
+          <!-- 비교 검색 -->
+          <button type="button" onclick="toggleCompare()" id="compareToggleBtn" class="btn-secondary hidden sm:flex" title="비교 검색">
+            <iconify-icon icon="solar:mirror-left-bold-duotone" width="16"></iconify-icon>
+            <span>비교 검색</span>
+          </button>
           <!-- API 상태 표시 -->
           <div id="apiStatus" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border api-status-pill">
             <span id="statusDot" class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
@@ -710,12 +834,18 @@
 
       <!-- Search Box Area -->
       <div class="flex flex-col items-center gap-4 w-full">
-        <div class="flex justify-center w-full">
-          <div class="search-icon-wrap">
+        <div class="search-wrap-rel">
+          <div class="search-icon-wrap w-full">
             <iconify-icon icon="solar:magnifer-bold" class="search-icon" width="20"></iconify-icon>
             <input id="searchInput" type="text" placeholder="검색어를 입력하세요"
-              class="search-input w-full" onkeydown="if(event.key==='Enter') doSearch()" autocomplete="off"
-              aria-label="검색어 입력">
+              class="search-input w-full"
+              onkeydown="if(event.key==='Enter') doSearch()"
+              onfocus="showHistory()" onblur="setTimeout(hideHistory,200)"
+              autocomplete="off" aria-label="검색어 입력">
+          </div>
+          <!-- 검색 히스토리 드롭다운 -->
+          <div id="historyDropdown" class="hidden">
+            <ul id="historyList"></ul>
           </div>
         </div>
         
@@ -831,18 +961,30 @@
         <span id="resultTotal" class="text-black font-bold text-xl"></span>
         <span class="text-secondary text-sm ml-2" id="resultQuery"></span>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <button type="button" onclick="runTrendAnalysis()" class="btn-secondary text-xs">
           <iconify-icon icon="solar:chart-2-bold-duotone" width="14"></iconify-icon>
           트렌드 분석
         </button>
         <button type="button" onclick="runTechCommerceAnalysis()" class="btn-secondary text-xs">
           <iconify-icon icon="solar:graph-up-bold-duotone" width="14"></iconify-icon>
-          기술사업화 유망 분야 도출
+          기술사업화
         </button>
         <button type="button" onclick="openBudgetModal()" class="btn-secondary text-xs">
           <iconify-icon icon="solar:calculator-bold-duotone" width="14"></iconify-icon>
-          적정 연구비 산출
+          연구비 산출
+        </button>
+        <button type="button" onclick="showKeywordNetwork()" class="btn-secondary text-xs" id="networkBtn" title="키워드 네트워크 시각화">
+          <iconify-icon icon="solar:share-circle-bold-duotone" width="14"></iconify-icon>
+          네트워크
+        </button>
+        <button type="button" onclick="exportCSV()" class="btn-secondary text-xs" title="CSV 내보내기">
+          <iconify-icon icon="solar:download-bold-duotone" width="14"></iconify-icon>
+          내보내기
+        </button>
+        <button type="button" onclick="copyShareLink()" class="btn-secondary text-xs" title="공유 링크 복사">
+          <iconify-icon icon="solar:link-bold-duotone" width="14"></iconify-icon>
+          공유
         </button>
         <button type="button" onclick="toggleAdvanced()" class="btn-secondary text-xs" id="advancedToggle">
           <iconify-icon icon="solar:tuning-2-bold-duotone" width="14"></iconify-icon>
@@ -1069,7 +1211,7 @@
       clientId: '',
       token: '',
       refreshToken: '',
-      tokenExpire: '',   // Access Token 만료 시각 (예: "2026-04-01 22:14:53.213")
+      tokenExpire: '',
       apiKey: '',
       macAddr: '',
       ntisKey: '',
@@ -1081,6 +1223,11 @@
       rowCount: 10,
       isLoading: false,
       advancedOpen: false,
+      // 새 기능용
+      searchHistory: JSON.parse(localStorage.getItem('sc_history') || '[]'),
+      favorites: JSON.parse(localStorage.getItem('sc_favorites') || '[]'),
+      currentItems: [],   // CSV 내보내기용 현재 결과 데이터
+      compareMode: false,
     };
 
     // ============================================================
@@ -1272,6 +1419,8 @@
       STATE.macAddr     = localStorage.getItem('sc_mac_addr') || '';
       STATE.ntisKey     = localStorage.getItem('sc_ntis_key') || '';
       STATE.cerebrasKey = localStorage.getItem('sc_cerebras_key') || '';
+      initTheme();
+      updateFavCount();
       await checkProxy();
 
       // 토큰이 없고 자격증명이 있으면 자동 발급 시도
@@ -1281,6 +1430,24 @@
         // 기존 토큰이 있으면 만료 스케줄러 재등록
         scheduleTokenRefresh();
         updateTokenExpireDisplay();
+      }
+
+      // URL 파라미터에서 자동 검색 (공유 링크 복원)
+      const urlParams = new URLSearchParams(location.search);
+      const initQ = urlParams.get('q');
+      const initT = urlParams.get('t');
+      if (initQ) {
+        document.getElementById('searchInput').value = initQ;
+        if (initT && initT.startsWith('NTIS')) {
+          setDatabase('NTIS');
+          setTimeout(() => doNTISSearch(), 300);
+        } else {
+          if (initT) {
+            const btn = document.querySelector(`[data-target="${initT}"]`);
+            if (btn) setTarget(btn, false);
+          }
+          setTimeout(() => doSearch(), 300);
+        }
       }
     })();
 
@@ -1506,6 +1673,8 @@
 
       STATE.currentQuery = query;
       STATE.currentPage = page;
+      addToHistory(query);
+      updateShareUrl(query, STATE.currentTarget);
 
       const searchField = document.getElementById('searchField').value;
       const sortField = document.getElementById('sortField').value;
@@ -1671,7 +1840,9 @@
       const query = document.getElementById('searchInput').value.trim();
       STATE.currentQuery = query;
       STATE.currentPage = page;
-      
+      addToHistory(query);
+      updateShareUrl(query, 'NTIS_prjt');
+
       const searchField = document.getElementById('searchField').value;
       const rowCount = parseInt(document.getElementById('rowCount').value);
       STATE.rowCount = rowCount;
@@ -3666,6 +3837,17 @@ Respond ONLY with this JSON structure:
         return;
       }
 
+      // currentItems 수집 (CSV 내보내기 + 네트워크 시각화용)
+      STATE.currentItems = items.map(item => ({
+        type: getTargetLabel(STATE.currentTarget),
+        title: getVal(item,'Title','ScentTitle','AuthorNameKor','OrganKor'),
+        authors: getVal(item,'Author'),
+        year: (getVal(item,'Pubyear','PublDate','RegisterDate','ApplDate')||'').substring(0,4),
+        url: getVal(item,'ContentURL','FulltextURL','MobileURL'),
+        keywords: getVal(item,'Keyword'),
+        abstract: getVal(item,'Abstract'),
+      }));
+
       // Render items
       items.forEach((item, idx) => {
         const card = renderCard(item, idx, query);
@@ -3880,8 +4062,12 @@ Respond ONLY with this JSON structure:
         <h3 class="text-black font-bold text-lg leading-snug mb-2">${hl(title) || '<span class="text-tertiary">제목 없음</span>'}</h3>
         ${subtitle ? `<p class="text-sm text-secondary mb-2 truncate">${hl(subtitle)}</p>` : ''}
         ${extra}
-        <div class="flex items-center mt-4 pt-3 border-t border-border">
+        <div class="flex items-center justify-between mt-4 pt-3 border-t border-border">
           <span class="text-xs text-tertiary">출처: 국가과학기술지식정보서비스(NTIS)</span>
+          <button type="button" class="fav-btn ${isFav(gv('ProjectNumber')||title)?'active':''}" title="즐겨찾기"
+            onclick="event.stopPropagation();toggleFav(${JSON.stringify({id:gv('ProjectNumber')||title,title,type:'R&D과제',url:'https://www.ntis.go.kr'})},this)">
+            <iconify-icon icon="solar:bookmark-bold${isFav(gv('ProjectNumber')||title)?'':'-duotone'}" width="16"></iconify-icon>
+          </button>
         </div>
       </div>
     </div>
@@ -4032,12 +4218,19 @@ Respond ONLY with this JSON structure:
           <div class="flex items-center gap-3">
             ${doi ? `<span class="text-xs text-tertiary truncate max-w-[200px]">DOI: ${escHtml(doi)}</span>` : ''}
             ${cn ? `<span class="text-xs text-tertiary font-mono truncate">${escHtml(cn)}</span>` : ''}
+            ${target === 'RESEARCHER' ? `<button type="button" class="btn-secondary text-xs" onclick="event.stopPropagation();showProfilePanel(this)" data-name="${escAttr(title)}" data-subtitle="${escAttr(publisher)}"><iconify-icon icon="solar:user-circle-bold-duotone" width="13"></iconify-icon>프로필</button>` : ''}
           </div>
-          ${url ? `
-          <div class="flex items-center gap-1 text-xs text-black font-bold shrink-0">
-            <span>본문 보기</span>
-            <iconify-icon icon="solar:arrow-right-up-bold" width="14"></iconify-icon>
-          </div>` : ''}
+          <div class="flex items-center gap-2">
+            <button type="button" class="fav-btn ${isFav(cn||title)?'active':''}" title="즐겨찾기"
+              onclick="event.stopPropagation();toggleFav(${JSON.stringify({id:cn||title,title,url,year:yearDisplay,type:getTargetLabel(target),authors:authorDisplay})},this)">
+              <iconify-icon icon="solar:bookmark-bold${isFav(cn||title)?'':'-duotone'}" width="16"></iconify-icon>
+            </button>
+            ${url ? `
+            <div class="flex items-center gap-1 text-xs text-black font-bold shrink-0">
+              <span>본문 보기</span>
+              <iconify-icon icon="solar:arrow-right-up-bold" width="14"></iconify-icon>
+            </div>` : ''}
+          </div>
         </div>
       </div>
     </div>
@@ -4317,6 +4510,315 @@ Respond ONLY with this JSON structure:
     }
 
     // ============================================================
+    // ============================================================
+    // ⑦ 검색 히스토리
+    // ============================================================
+    function addToHistory(query) {
+      if (!query || query.length < 2) return;
+      STATE.searchHistory = [query, ...STATE.searchHistory.filter(h => h !== query)].slice(0, 15);
+      localStorage.setItem('sc_history', JSON.stringify(STATE.searchHistory));
+    }
+    function showHistory() {
+      if (STATE.searchHistory.length === 0) return;
+      const dd = document.getElementById('historyDropdown');
+      const list = document.getElementById('historyList');
+      list.innerHTML = STATE.searchHistory.map(h =>
+        `<li onclick="setSearchAndGo('${escAttr(h)}')">
+          <iconify-icon icon="solar:clock-circle-bold-duotone" width="14"></iconify-icon>${escHtml(h)}
+        </li>`
+      ).join('') + `<li class="clear-btn" onclick="clearHistory()">
+        <iconify-icon icon="solar:trash-bin-2-bold-duotone" width="13"></iconify-icon>기록 삭제
+      </li>`;
+      dd.classList.remove('hidden');
+    }
+    function hideHistory() {
+      document.getElementById('historyDropdown').classList.add('hidden');
+    }
+    function clearHistory() {
+      STATE.searchHistory = [];
+      localStorage.removeItem('sc_history');
+      hideHistory();
+    }
+    function setSearchAndGo(q) {
+      document.getElementById('searchInput').value = q;
+      hideHistory();
+      doSearch();
+    }
+
+    // ============================================================
+    // ⑧ 공유 링크 생성
+    // ============================================================
+    function updateShareUrl(query, target) {
+      const url = new URL(location.href.split('?')[0]);
+      url.searchParams.set('q', query);
+      url.searchParams.set('t', target);
+      history.replaceState(null, '', url.toString());
+    }
+    function copyShareLink() {
+      const url = location.href;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('공유 링크가 클립보드에 복사되었습니다.', 'success');
+      }).catch(() => {
+        prompt('아래 링크를 복사하세요:', url);
+      });
+    }
+
+    // ============================================================
+    // ⑨ 다크/라이트 모드
+    // ============================================================
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('sc_theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIcon').setAttribute('icon',
+        isDark ? 'solar:sun-bold-duotone' : 'solar:moon-bold-duotone');
+    }
+    function initTheme() {
+      const saved = localStorage.getItem('sc_theme') || 'light';
+      if (saved === 'dark') {
+        document.documentElement.classList.add('dark');
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.setAttribute('icon', 'solar:sun-bold-duotone');
+      }
+    }
+
+    // ============================================================
+    // ② CSV 내보내기
+    // ============================================================
+    function exportCSV(items) {
+      const rows = items || STATE.currentItems;
+      if (!rows || rows.length === 0) { showToast('내보낼 결과가 없습니다.', 'warning'); return; }
+      const headers = ['유형', '제목', '저자/발명자', '연도', 'URL', '키워드', '초록'];
+      const csvRows = [headers.join(',')];
+      rows.forEach(r => {
+        const cols = [r.type||'', r.title||'', r.authors||'', r.year||'', r.url||'', r.keywords||'', (r.abstract||'').replace(/\n/g,' ')];
+        csvRows.push(cols.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','));
+      });
+      const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `scienceon_${STATE.currentQuery}_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      showToast(`${rows.length}건을 CSV로 내보냈습니다.`, 'success');
+    }
+    function exportFavCSV() { exportCSV(STATE.favorites.map(f => ({...f, authors:'', keywords:'', abstract:''}))); }
+
+    // ============================================================
+    // ③ 즐겨찾기
+    // ============================================================
+    function isFav(id) { return STATE.favorites.some(f => f.id === id); }
+    function saveFavs() {
+      localStorage.setItem('sc_favorites', JSON.stringify(STATE.favorites));
+      updateFavCount();
+    }
+    function updateFavCount() {
+      const cnt = STATE.favorites.length;
+      const el = document.getElementById('favCount');
+      const panelEl = document.getElementById('favPanelCount');
+      if (el) { el.textContent = cnt; el.classList.toggle('hidden', cnt === 0); }
+      if (panelEl) panelEl.textContent = `${cnt}건`;
+    }
+    function toggleFav(data, btn) {
+      const idx = STATE.favorites.findIndex(f => f.id === data.id);
+      if (idx >= 0) {
+        STATE.favorites.splice(idx, 1);
+        if (btn) { btn.classList.remove('active'); btn.querySelector('iconify-icon').setAttribute('icon','solar:bookmark-bold-duotone'); }
+        showToast('즐겨찾기에서 제거했습니다.', 'info');
+      } else {
+        STATE.favorites.unshift(data);
+        if (btn) { btn.classList.add('active'); btn.querySelector('iconify-icon').setAttribute('icon','solar:bookmark-bold'); }
+        showToast('즐겨찾기에 추가했습니다.', 'success');
+      }
+      saveFavs();
+      if (!document.getElementById('favPanel').classList.contains('open')) return;
+      renderFavList();
+    }
+    function openFavPanel() {
+      renderFavList();
+      document.getElementById('favPanel').classList.add('open');
+      document.getElementById('favOverlay').classList.add('open');
+    }
+    function closeFavPanel() {
+      document.getElementById('favPanel').classList.remove('open');
+      document.getElementById('favOverlay').classList.remove('open');
+    }
+    function renderFavList() {
+      const container = document.getElementById('favList');
+      updateFavCount();
+      if (STATE.favorites.length === 0) {
+        container.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm">즐겨찾기가 없습니다.<br>검색 결과의 <iconify-icon icon="solar:bookmark-bold-duotone" width="14"></iconify-icon> 버튼을 눌러 추가하세요.</div>';
+        return;
+      }
+      container.innerHTML = STATE.favorites.map(f => `
+        <div class="fav-card" onclick="${f.url ? `window.open('${escAttr(f.url)}','_blank')` : ''}">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="text-xs px-1.5 py-0.5 rounded font-medium" style="background:#f5f5f5;">${escHtml(f.type||'')}</span>
+                ${f.year ? `<span class="text-xs text-gray-400">${escHtml(f.year)}</span>` : ''}
+              </div>
+              <p class="text-sm font-semibold leading-snug line-clamp-2">${escHtml(f.title||'')}</p>
+              ${f.authors ? `<p class="text-xs text-gray-400 mt-1 truncate">${escHtml(f.authors)}</p>` : ''}
+            </div>
+            <button type="button" class="fav-btn active flex-shrink-0" onclick="event.stopPropagation();removeFav('${escAttr(f.id)}',this)">
+              <iconify-icon icon="solar:bookmark-bold" width="16"></iconify-icon>
+            </button>
+          </div>
+        </div>`).join('');
+    }
+    function removeFav(id, btn) {
+      STATE.favorites = STATE.favorites.filter(f => f.id !== id);
+      saveFavs();
+      renderFavList();
+      document.querySelectorAll(`.fav-btn`).forEach(b => {
+        const icon = b.querySelector('iconify-icon');
+        if (icon) icon.setAttribute('icon', 'solar:bookmark-bold-duotone');
+        b.classList.remove('active');
+      });
+    }
+
+    // ============================================================
+    // ⑤ 연구자/기관 프로필 패널
+    // ============================================================
+    function showProfilePanel(btn) {
+      const name = btn.dataset.name || '';
+      const subtitle = btn.dataset.subtitle || '';
+      document.getElementById('profileTitle').textContent = name;
+      document.getElementById('profileContent').innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+            <iconify-icon icon="solar:user-circle-bold-duotone" width="32" class="text-gray-400"></iconify-icon>
+          </div>
+          <div>
+            <p class="font-bold text-lg">${escHtml(name)}</p>
+            <p class="text-sm text-gray-400">${escHtml(subtitle)}</p>
+          </div>
+        </div>
+        <div class="text-sm text-gray-400 pt-2">검색창에서 이 연구자의 논문을 검색합니다.</div>
+        <button type="button" class="btn-primary text-sm w-full mt-2" onclick="setSearchAndGo('${escAttr(name)}')">
+          <iconify-icon icon="solar:magnifer-bold" width="14"></iconify-icon>논문 검색
+        </button>`;
+      document.getElementById('profilePanel').classList.add('open');
+    }
+    function closeProfilePanel() {
+      document.getElementById('profilePanel').classList.remove('open');
+    }
+
+    // ============================================================
+    // ⑥ 비교 검색
+    // ============================================================
+    function toggleCompare() {
+      STATE.compareMode = !STATE.compareMode;
+      const section = document.getElementById('compareSection');
+      section.classList.toggle('active', STATE.compareMode);
+      const btn = document.getElementById('compareToggleBtn');
+      if (btn) btn.classList.toggle('active', STATE.compareMode);
+      if (STATE.compareMode) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('compareInputA').value = STATE.currentQuery || '';
+      }
+    }
+    async function runCompare() {
+      const qA = document.getElementById('compareInputA').value.trim();
+      const qB = document.getElementById('compareInputB').value.trim();
+      if (!qA || !qB) { showToast('두 검색어를 모두 입력하세요.', 'warning'); return; }
+      document.getElementById('compareLabelA').textContent = `"${qA}" — ${getTargetLabel(STATE.currentTarget)}`;
+      document.getElementById('compareLabelB').textContent = `"${qB}" — ${getTargetLabel(STATE.currentTarget)}`;
+      document.getElementById('compareGridA').innerHTML = '<div class="text-center text-gray-400 py-8"><div class="spinner mx-auto"></div></div>';
+      document.getElementById('compareGridB').innerHTML = '<div class="text-center text-gray-400 py-8"><div class="spinner mx-auto"></div></div>';
+      const fetchOne = async (query) => {
+        const params = new URLSearchParams({ client_id: STATE.clientId, token: STATE.token,
+          version: '1.0', action: 'search', target: STATE.currentTarget,
+          searchQuery: query, curPage: 1, rowCount: 5 });
+        const resp = await fetch(`${getApiBase()}?${params}`);
+        return new DOMParser().parseFromString(await resp.text(), 'text/xml');
+      };
+      const [xmlA, xmlB] = await Promise.all([fetchOne(qA), fetchOne(qB)]).catch(e => {
+        showToast('비교 검색 오류: ' + e.message, 'error'); return [null,null];
+      });
+      const renderCompareGrid = (xml, gridId) => {
+        if (!xml) return;
+        const items = getItems(xml);
+        document.getElementById(gridId).innerHTML = items.length
+          ? items.map((item,i) => renderCard(item, i, '')).join('')
+          : '<p class="text-center text-gray-400 text-sm py-8">결과 없음</p>';
+      };
+      renderCompareGrid(xmlA, 'compareGridA');
+      renderCompareGrid(xmlB, 'compareGridB');
+    }
+
+    // ============================================================
+    // ④ 키워드 네트워크 시각화 (D3.js)
+    // ============================================================
+    function showKeywordNetwork() {
+      if (!STATE.currentItems || STATE.currentItems.length === 0) {
+        showToast('먼저 검색을 실행하세요.', 'warning'); return;
+      }
+      document.getElementById('networkTitle').textContent = `"${STATE.currentQuery}" 키워드 네트워크`;
+      document.getElementById('networkModal').classList.add('open');
+      renderNetwork(STATE.currentItems, STATE.currentQuery);
+    }
+    function closeNetwork() {
+      document.getElementById('networkModal').classList.remove('open');
+    }
+    function renderNetwork(items, centerQuery) {
+      const container = document.getElementById('networkContainer');
+      container.innerHTML = '';
+      const W = container.clientWidth || 800;
+      const H = container.clientHeight || 520;
+
+      // 키워드 추출 및 빈도 집계
+      const kwFreq = {};
+      items.forEach(item => {
+        const kw = item.keywords || '';
+        kw.split(/[;,|]/).map(k => k.trim()).filter(k => k && k !== centerQuery).forEach(k => {
+          kwFreq[k] = (kwFreq[k] || 0) + 1;
+        });
+      });
+      const topKws = Object.entries(kwFreq).sort((a,b) => b[1]-a[1]).slice(0, 30);
+
+      const nodes = [{ id: centerQuery, group: 0, size: 20 },
+        ...topKws.map(([k,v]) => ({ id: k, group: 1, size: Math.min(5 + v * 3, 18) }))];
+      const links = topKws.map(([k]) => ({ source: centerQuery, target: k }));
+
+      const svg = d3.select(container).append('svg')
+        .attr('width', W).attr('height', H);
+
+      const sim = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d => d.id).distance(90))
+        .force('charge', d3.forceManyBody().strength(-200))
+        .force('center', d3.forceCenter(W/2, H/2))
+        .force('collision', d3.forceCollide(d => d.size + 8));
+
+      const link = svg.append('g').selectAll('line').data(links).join('line')
+        .attr('class', 'link').attr('stroke', '#ddd').attr('stroke-width', 1.2);
+
+      const node = svg.append('g').selectAll('g').data(nodes).join('g')
+        .attr('class', 'node')
+        .call(d3.drag()
+          .on('start', (e,d) => { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+          .on('drag',  (e,d) => { d.fx=e.x; d.fy=e.y; })
+          .on('end',   (e,d) => { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }));
+
+      node.append('circle')
+        .attr('r', d => d.size)
+        .attr('fill', d => d.group === 0 ? '#111' : '#f5f5f5')
+        .attr('stroke', d => d.group === 0 ? '#111' : '#ddd');
+
+      node.append('text')
+        .attr('dy', d => d.size + 12)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', d => d.group === 0 ? '13px' : '11px')
+        .attr('font-weight', d => d.group === 0 ? 'bold' : 'normal')
+        .attr('fill', d => d.group === 0 ? '#111' : '#666')
+        .text(d => d.id.length > 12 ? d.id.slice(0,12)+'…' : d.id);
+
+      sim.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        node.attr('transform', d => `translate(${Math.max(d.size, Math.min(W-d.size, d.x))},${Math.max(d.size, Math.min(H-d.size, d.y))})`);
+      });
+    }
+
     // Toast
     // ============================================================
     let toastTimeout;
@@ -5395,6 +5897,93 @@ ${'='.repeat(64)}
         style="width:100%; height:60vh; font-family:'Pretendard','Malgun Gothic',monospace; font-size:0.78rem; line-height:1.7;
                border:1px solid #e5e7eb; border-radius:0.75rem; padding:1rem; resize:vertical;
                background:#fafafa; color:#1f2937; white-space:pre; overflow:auto;"></textarea>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       즐겨찾기 패널
+  ══════════════════════════════════════════════════════════ -->
+  <div id="favOverlay" onclick="closeFavPanel()"></div>
+  <div id="favPanel">
+    <div class="fav-header">
+      <div class="flex items-center gap-2">
+        <iconify-icon icon="solar:bookmark-bold-duotone" width="20" class="text-amber-400"></iconify-icon>
+        <h2 class="font-bold text-base">즐겨찾기</h2>
+        <span id="favPanelCount" class="text-xs text-gray-400"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="exportFavCSV()" class="btn-secondary text-xs" title="즐겨찾기 CSV 내보내기">
+          <iconify-icon icon="solar:download-bold-duotone" width="13"></iconify-icon>내보내기
+        </button>
+        <button type="button" onclick="closeFavPanel()" class="btn-secondary text-xs">
+          <iconify-icon icon="solar:close-circle-bold-duotone" width="14"></iconify-icon>닫기
+        </button>
+      </div>
+    </div>
+    <div id="favList" class="flex-1"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       연구자/기관 프로필 패널
+  ══════════════════════════════════════════════════════════ -->
+  <div id="profilePanel">
+    <div class="fav-header">
+      <div class="flex items-center gap-2">
+        <iconify-icon icon="solar:user-circle-bold-duotone" width="20"></iconify-icon>
+        <h2 class="font-bold text-base" id="profileTitle">프로필</h2>
+      </div>
+      <button type="button" onclick="closeProfilePanel()" class="btn-secondary text-xs">
+        <iconify-icon icon="solar:close-circle-bold-duotone" width="14"></iconify-icon>닫기
+      </button>
+    </div>
+    <div id="profileContent" class="p-5 space-y-4"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       키워드 네트워크 모달
+  ══════════════════════════════════════════════════════════ -->
+  <div id="networkModal" onclick="if(event.target===this)closeNetwork()">
+    <div class="bg-white rounded-2xl shadow-2xl flex flex-col" style="width:min(900px,95vw);height:min(680px,90dvh);">
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <iconify-icon icon="solar:share-circle-bold-duotone" width="20"></iconify-icon>
+          <span class="font-bold text-base" id="networkTitle">키워드 네트워크</span>
+        </div>
+        <button type="button" onclick="closeNetwork()" class="btn-secondary text-xs">
+          <iconify-icon icon="solar:close-circle-bold-duotone" width="14"></iconify-icon>닫기
+        </button>
+      </div>
+      <div id="networkContainer" class="flex-1 relative overflow-hidden rounded-b-2xl"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       비교 검색 섹션 (메인 콘텐츠 위에 삽입됨)
+  ══════════════════════════════════════════════════════════ -->
+  <div id="compareSection" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+    <div class="flex items-center gap-3 mb-5 pt-4">
+      <iconify-icon icon="solar:mirror-left-bold-duotone" width="20"></iconify-icon>
+      <h2 class="font-bold text-lg">비교 검색</h2>
+      <button type="button" onclick="runCompare()" class="btn-primary text-sm">비교 실행</button>
+      <button type="button" onclick="toggleCompare()" class="btn-secondary text-sm">닫기</button>
+    </div>
+    <div class="flex gap-3 mb-5">
+      <input id="compareInputA" type="text" placeholder="검색어 A" class="search-input flex-1"
+        onkeydown="if(event.key==='Enter')runCompare()">
+      <span class="flex items-center font-bold text-gray-400">VS</span>
+      <input id="compareInputB" type="text" placeholder="검색어 B" class="search-input flex-1"
+        onkeydown="if(event.key==='Enter')runCompare()">
+    </div>
+    <div id="compareResults" class="flex gap-4">
+      <div class="compare-col" id="compareColA">
+        <div class="font-semibold text-sm mb-3 text-center" id="compareLabelA"></div>
+        <div id="compareGridA" class="space-y-3"></div>
+      </div>
+      <div class="compare-divider"></div>
+      <div class="compare-col" id="compareColB">
+        <div class="font-semibold text-sm mb-3 text-center" id="compareLabelB"></div>
+        <div id="compareGridB" class="space-y-3"></div>
+      </div>
     </div>
   </div>
 
