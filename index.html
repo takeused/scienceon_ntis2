@@ -907,6 +907,15 @@
       <iconify-icon icon="solar:ghost-bold-duotone" class="no-result-icon" width="48"></iconify-icon>
       <p class="text-gray-400 font-medium">검색 결과가 없습니다</p>
       <p class="text-gray-600 text-sm">다른 검색어나 콘텐츠 유형을 시도해보세요</p>
+      <div id="ntisDebugPanel" class="hidden mt-4 w-full max-w-2xl text-left">
+        <div class="p-3 bg-gray-900 rounded-lg border border-orange-500/30 space-y-2">
+          <p class="text-xs font-semibold text-orange-400">NTIS 응답 진단</p>
+          <p class="text-xs text-gray-400">요청 URL:</p>
+          <div id="ntisDebugUrl" class="text-xs font-mono text-blue-300 break-all"></div>
+          <p class="text-xs text-gray-400 mt-2">응답 (원시 XML):</p>
+          <pre id="ntisDebugRaw" class="text-xs font-mono text-green-300 overflow-x-auto whitespace-pre-wrap break-all max-h-64 overflow-y-auto p-2 rounded" style="background:rgba(0,0,0,0.4);"></pre>
+        </div>
+      </div>
     </div>
 
     <!-- Results Grid -->
@@ -1689,27 +1698,55 @@
       if (searchFd) params.append('searchFd', searchFd);
       if (addQuery)  params.append('addQuery', addQuery);
       
-      const url = `${getProxyBase()}/ntis?${params.toString()}`;
-      
+      const proxyBase = getProxyBase();
+      if (!proxyBase) {
+        setLoading(false);
+        document.getElementById('emptyState').classList.add('hidden');
+        // 직접 NTIS URL 생성 (프록시 없이 브라우저에서 열기용)
+        const directParams = new URLSearchParams(params);
+        const directUrl = `https://www.ntis.go.kr/rndopen/openApi/totalRstSearch?${directParams.toString()}`;
+        const grid = document.getElementById('resultsGrid');
+        grid.innerHTML = `<div class="p-5 rounded-2xl" style="border:1px solid rgba(251,146,60,0.3);background:rgba(251,146,60,0.05);">
+          <p class="text-orange-300 font-semibold mb-2">⚠️ 프록시 서버가 연결되어 있지 않습니다</p>
+          <p class="text-gray-400 text-sm mb-3">아래 URL을 새 탭에서 열어 NTIS 응답을 직접 확인하세요.</p>
+          <p class="text-xs text-gray-500 mb-1 font-semibold">NTIS 직접 URL:</p>
+          <code class="text-xs text-blue-300 break-all block p-2 rounded mb-3" style="background:rgba(0,0,0,0.4);">${escHtml(directUrl)}</code>
+          <button onclick="window.open('${escAttr(directUrl)}','_blank')" class="btn-secondary text-xs">새 탭에서 NTIS 직접 호출</button>
+          <p class="text-gray-500 text-xs mt-3">로컬 프록시: <code class="text-green-400">node proxy-server.js</code> 실행 후 새로고침</p>
+        </div>`;
+        return;
+      }
+
+      const url = `${proxyBase}/ntis?${params.toString()}`;
+
       try {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const text = await resp.text();
-        
-        // [DEBUG] NTIS 응답 데이터 상세 확인 (브라우저 콘솔용)
+
+        // [DEBUG] NTIS 응답 저장 (디버그 패널용)
+        window._ntisDebug = { url, raw: text };
+        console.log('[NTIS-DEBUG] URL:', url);
         console.log('[NTIS-DEBUG] RAW TEXT:', text);
-        
+
         const parser = new DOMParser();
         const xml = parser.parseFromString(text, 'text/xml');
-        
+
         const returnCode = xml.querySelector('returnCode')?.textContent;
         if (returnCode && returnCode !== '0') {
            const returnMsg = xml.querySelector('returnMsg')?.textContent || '알 수 없는 오류';
            showToast(`NTIS 검색 오류: ${returnMsg} (${returnCode})`, 'error');
+           // 오류 응답도 화면에 표시
+           document.getElementById('emptyState').classList.add('hidden');
+           document.getElementById('resultsGrid').innerHTML = `<div class="p-4 rounded-xl" style="border:1px solid rgba(239,68,68,0.3);">
+             <p class="text-red-400 font-semibold">NTIS API 오류 [${escHtml(returnCode)}]</p>
+             <p class="text-gray-400 text-sm mt-1">${escHtml(returnMsg)}</p>
+             <p class="text-xs text-gray-600 mt-2 break-all">요청 URL: ${escHtml(url)}</p>
+           </div>`;
            setLoading(false);
            return;
         }
-        
+
         renderNTISResults(xml, query, collection);
       } catch (err) {
         console.error(err);
@@ -3644,8 +3681,22 @@ Respond ONLY with this JSON structure:
       // getElementsByTagName 사용: querySelector는 XML 대문자 태그에 브라우저별 불안정
       const getXmlTag = (tagName) => xml.getElementsByTagName(tagName)[0] || null;
 
-      // NTIS 기관용 API는 <TOTALHITS> 사용
-      const totalEl = getXmlTag('TOTALHITS') || getXmlTag('totalCount') || getXmlTag('TOTAL_COUNT') || getXmlTag('total_count');
+      // returnCode 오류 처리: 0이 아닌 경우 오류 메시지 표시
+      const returnCode = getXmlTag('returnCode')?.textContent?.trim();
+      const returnMsg  = getXmlTag('returnMsg')?.textContent?.trim() || '';
+      console.log(`[NTIS] returnCode=${returnCode} | returnMsg=${returnMsg}`);
+      if (returnCode && returnCode !== '0') {
+        showToast(`NTIS API 오류: [${returnCode}] ${returnMsg}`, 'error');
+        console.error('[NTIS] API 오류 응답:', returnCode, returnMsg, new XMLSerializer().serializeToString(xml));
+        setLoading(false);
+        return;
+      }
+
+      // NTIS 기관용 API는 <TOTALHITS> 사용 (다양한 태그명 폴백)
+      const totalEl = getXmlTag('TOTALHITS') || getXmlTag('TOTAL_HITS')
+                   || getXmlTag('totalCount') || getXmlTag('TOTAL_COUNT')
+                   || getXmlTag('total_count') || getXmlTag('TotalCount')
+                   || getXmlTag('resultCount') || getXmlTag('RESULT_COUNT');
       const total = totalEl ? parseInt(totalEl.textContent) || 0 : 0;
       STATE.totalCount = total;
 
@@ -3658,6 +3709,17 @@ Respond ONLY with this JSON structure:
       if (total === 0) {
         setLoading(false);
         document.getElementById('noResultState').classList.remove('hidden');
+        // 디버그 패널: 원시 응답 표시
+        if (window._ntisDebug) {
+          const panel = document.getElementById('ntisDebugPanel');
+          const urlEl  = document.getElementById('ntisDebugUrl');
+          const rawEl  = document.getElementById('ntisDebugRaw');
+          if (panel && urlEl && rawEl) {
+            urlEl.textContent = window._ntisDebug.url;
+            rawEl.textContent = window._ntisDebug.raw.substring(0, 3000);
+            panel.classList.remove('hidden');
+          }
+        }
         return;
       }
 
@@ -4503,14 +4565,7 @@ Respond ONLY with:
           naviCount: 5,
         });
 
-        // 수행기간 필터: 사용자 희망기간 ±1년
-        if (durationYears) {
-          const minYr = Math.max(1, durationYears - 1);
-          const maxYr = durationYears + 1;
-          // NTIS addQuery로 기간 필터 (연도 제한은 최근 8년 이내)
-          const nowYr = new Date().getFullYear();
-          params.append('addQuery', `PY=${nowYr - 8}/MORE`);
-        }
+        // addQuery는 사용하지 않음 — 형식 오류 시 API 0건 원인이 되므로 클라이언트 필터로만 처리
 
         try {
           const resp = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
@@ -4518,8 +4573,12 @@ Respond ONLY with:
           const text = await resp.text();
           const xml = new DOMParser().parseFromString(text, 'text/xml');
 
+          // HIT 태그 폴백 (NTIS 응답 구조 변형 대응)
           let items = Array.from(xml.getElementsByTagName('HIT'));
-          
+          if (items.length === 0) items = Array.from(xml.getElementsByTagName('item'));
+          if (items.length === 0) items = Array.from(xml.getElementsByTagName('row'));
+          if (items.length === 0) items = Array.from(xml.getElementsByTagName('record'));
+
           // [PATCH] 공백이 포함된 검색어인데 결과가 0건인 경우, 띄어쓰기를 무시하고 검색 시도 (NTIS 특성 대응)
           if (items.length === 0 && kw.includes(' ')) {
             const noSpaceKw = kw.replace(/\s+/g, '');
@@ -4530,6 +4589,9 @@ Respond ONLY with:
               const text2 = await resp2.text();
               const xml2 = new DOMParser().parseFromString(text2, 'text/xml');
               items = Array.from(xml2.getElementsByTagName('HIT'));
+              if (items.length === 0) items = Array.from(xml2.getElementsByTagName('item'));
+              if (items.length === 0) items = Array.from(xml2.getElementsByTagName('row'));
+              if (items.length === 0) items = Array.from(xml2.getElementsByTagName('record'));
             }
           }
 
@@ -4566,7 +4628,7 @@ Respond ONLY with:
             // [Step 2] 정책 메타데이터 필터링
             const startYr = parseInt(prdStart);
             const curYr   = new Date().getFullYear();
-            if (prdStart && startYr < curYr - 8) continue;
+            if (prdStart && startYr < curYr - 10) continue;
 
             // 수행연수 계산 (기간 정보 있는 경우에만)
             const hasPeriod = prdStart && prdEnd && !isNaN(parseInt(prdStart)) && !isNaN(parseInt(prdEnd));
@@ -4598,7 +4660,11 @@ Respond ONLY with:
               budgetSource = 'thyr';
             }
 
-            if (annualBudget <= 0) continue;
+            // 예산 미상 항목도 포함 (budgetSource='unknown'으로 표시, 비교 참고용)
+            if (annualBudget <= 0) {
+              annualBudget = 0;
+              budgetSource = 'unknown';
+            }
 
             allItems.push({ projNm, annualBudget, budgetSource, totFund, prdStart, prdEnd, projYrs, phase, biz, perfOrg, absContent, pjtId });
           }
