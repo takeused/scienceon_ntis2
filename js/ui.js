@@ -2380,9 +2380,14 @@ Respond ONLY with this JSON structure:
           <div class="flex items-center gap-3">
             ${doi ? `<span class="text-xs text-tertiary truncate max-w-[200px]">DOI: ${escHtml(doi)}</span>` : ''}
             ${cn ? `<span class="text-xs text-tertiary font-mono truncate">${escHtml(cn)}</span>` : ''}
-            ${target === 'RESEARCHER' ? `<button type="button" class="btn-secondary text-xs" onclick="event.stopPropagation();showProfilePanel(this)" data-name="${escAttr(title)}" data-subtitle="${escAttr(publisher)}"><iconify-icon icon="solar:user-circle-bold-duotone" width="13"></iconify-icon>프로필</button>` : ''}
+            ${target === 'RESEARCHER' ? `<button type="button" class="btn-secondary text-xs" onclick="event.stopPropagation();showDeepProfile('${escAttr(title)}','${escAttr(publisher)}')" data-name="${escAttr(title)}" data-subtitle="${escAttr(publisher)}"><iconify-icon icon="solar:user-circle-bold-duotone" width="13"></iconify-icon>심층 프로필</button>` : ''}
           </div>
           <div class="flex items-center gap-2">
+            <button type="button" class="fav-btn ${typeof hasMemo !== 'undefined' && hasMemo(cn||title) ? 'memo-active' : ''}" title="메모"
+              data-memo-id="${escAttr(cn||title)}"
+              onclick="event.stopPropagation();openMemoPanel('${escAttr(cn||title)}','${escAttr(title)}')">
+              <iconify-icon icon="solar:notes-bold${typeof hasMemo !== 'undefined' && hasMemo(cn||title) ? '' : '-duotone'}" width="16"></iconify-icon>
+            </button>
             <button type="button" class="fav-btn ${isFav(cn||title)?'active':''}" title="즐겨찾기"
               onclick="event.stopPropagation();toggleFav(${JSON.stringify({id:cn||title,title,url,year:yearDisplay,type:getTargetLabel(target),authors:authorDisplay})},this)">
               <iconify-icon icon="solar:bookmark-bold${isFav(cn||title)?'':'-duotone'}" width="16"></iconify-icon>

@@ -13,7 +13,8 @@
   <script defer src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <script defer
+    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -46,7 +47,8 @@
             <span id="favCount" class="hidden text-xs bg-amber-400 text-black rounded-full px-1.5 font-bold"></span>
           </button>
           <!-- 비교 검색 -->
-          <button type="button" onclick="toggleCompare()" id="compareToggleBtn" class="btn-secondary hidden sm:flex" title="비교 검색">
+          <button type="button" onclick="toggleCompare()" id="compareToggleBtn" class="btn-secondary hidden sm:flex"
+            title="비교 검색">
             <iconify-icon icon="solar:mirror-left-bold-duotone" width="16"></iconify-icon>
             <span>비교 검색</span>
           </button>
@@ -67,10 +69,13 @@
   <!-- 프록시 오프라인 경고 배너 -->
   <div id="proxyOfflineBanner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2">
     <div class="max-w-7xl mx-auto flex items-center gap-3 text-xs text-amber-800">
-      <iconify-icon icon="solar:danger-triangle-bold-duotone" width="16" class="text-amber-500 flex-shrink-0"></iconify-icon>
+      <iconify-icon icon="solar:danger-triangle-bold-duotone" width="16"
+        class="text-amber-500 flex-shrink-0"></iconify-icon>
       <span><strong>프록시 서버 미연결.</strong> CORS 오류가 발생할 수 있습니다.</span>
-      <span class="text-amber-600">→ 로컬: <code class="bg-amber-100 px-1 rounded">서버시작.bat</code> 실행 | 배포: Cloudflare Worker 설정 필요</span>
-      <button onclick="checkProxy()" class="ml-auto flex-shrink-0 bg-amber-200 hover:bg-amber-300 text-amber-900 px-2 py-0.5 rounded font-medium transition-colors">재확인</button>
+      <span class="text-amber-600">→ 로컬: <code class="bg-amber-100 px-1 rounded">서버시작.bat</code> 실행 | 배포: Cloudflare
+        Worker 설정 필요</span>
+      <button onclick="checkProxy()"
+        class="ml-auto flex-shrink-0 bg-amber-200 hover:bg-amber-300 text-amber-900 px-2 py-0.5 rounded font-medium transition-colors">재확인</button>
     </div>
   </div>
 
@@ -91,7 +96,7 @@
 
       <!-- Compact Logo (Search Mode Only - Header substitute) -->
       <div class="search-mode-only hidden mb-4 text-left">
-         <span class="font-bold text-black text-xl tracking-tight">ScienceON</span>
+        <span class="font-bold text-black text-xl tracking-tight">ScienceON</span>
       </div>
 
       <!-- Search Box Area -->
@@ -99,22 +104,21 @@
         <div class="search-wrap-rel">
           <div class="search-icon-wrap w-full">
             <iconify-icon icon="solar:magnifer-bold" class="search-icon" width="20"></iconify-icon>
-            <input id="searchInput" type="text" placeholder="검색어를 입력하세요"
-              class="search-input w-full"
-              onkeydown="if(event.key==='Enter') doSearch()"
-              onfocus="showHistory()" onblur="setTimeout(hideHistory,200)"
-              autocomplete="off" aria-label="검색어 입력">
+            <input id="searchInput" type="text" placeholder="검색어를 입력하세요" class="search-input w-full"
+              onkeydown="if(event.key==='Enter') doSearch()" onfocus="showHistory()"
+              onblur="setTimeout(hideHistory,200)" autocomplete="off" aria-label="검색어 입력">
           </div>
           <!-- 검색 히스토리 드롭다운 -->
           <div id="historyDropdown" class="hidden">
             <ul id="historyList"></ul>
           </div>
         </div>
-        
+
         <!-- Persistent DB Switcher (Always Visible) -->
         <div class="flex justify-center z-20 relative">
           <div class="inline-flex rounded-full p-1 border border-border bg-white shadow-sm db-toggle-wrap">
-            <button type="button" class="db-btn active db-scienceon" id="btnDbScienceON" onclick="setDatabase('SCIENCEON')">
+            <button type="button" class="db-btn active db-scienceon" id="btnDbScienceON"
+              onclick="setDatabase('SCIENCEON')">
               ScienceON
             </button>
             <button type="button" class="db-btn" id="btnDbNTIS" onclick="setDatabase('NTIS')">
@@ -158,7 +162,8 @@
 
         <!-- NTIS Tabs -->
         <div id="tabsNTIS" class="hidden flex flex-wrap justify-center gap-1.5 transition-all duration-300">
-          <button type="button" class="tab-btn ntis-tab active" data-target="NTIS_prjt" onclick="setTarget(this)">R&D과제</button>
+          <button type="button" class="tab-btn ntis-tab active" data-target="NTIS_prjt"
+            onclick="setTarget(this)">R&D과제</button>
         </div>
       </div>
     </div>
@@ -200,11 +205,11 @@
         <!-- NTIS 연도 필터 (NTIS 검색 시에만 표시) -->
         <div id="ntisYearFilter" class="hidden flex items-center gap-2">
           <label class="text-xs text-gray-500">연도</label>
-          <input type="number" id="ntisYearFrom" placeholder="시작년도" min="2000" max="2099"
-            class="select-field" style="width:90px; padding:0.5rem 0.625rem;" title="시작 연도">
+          <input type="number" id="ntisYearFrom" placeholder="시작년도" min="2000" max="2099" class="select-field"
+            style="width:90px; padding:0.5rem 0.625rem;" title="시작 연도">
           <span class="text-xs text-gray-600">~</span>
-          <input type="number" id="ntisYearTo" placeholder="종료년도" min="2000" max="2099"
-            class="select-field" style="width:90px; padding:0.5rem 0.625rem;" title="종료 연도">
+          <input type="number" id="ntisYearTo" placeholder="종료년도" min="2000" max="2099" class="select-field"
+            style="width:90px; padding:0.5rem 0.625rem;" title="종료 연도">
         </div>
         <div id="groupingWrapper" class="flex items-center gap-2 ml-auto">
           <input type="checkbox" id="groupingCheck" class="accent-green-400">
@@ -236,14 +241,38 @@
           <iconify-icon icon="solar:calculator-bold-duotone" width="14"></iconify-icon>
           연구비 산출
         </button>
-        <button type="button" onclick="showKeywordNetwork()" class="btn-secondary text-xs" id="networkBtn" title="키워드 네트워크 시각화">
+        <button type="button" onclick="showKeywordNetwork()" class="btn-secondary text-xs" id="networkBtn"
+          title="키워드 네트워크 시각화">
           <iconify-icon icon="solar:share-circle-bold-duotone" width="14"></iconify-icon>
-          네트워크
+          키워드망
         </button>
-        <button type="button" onclick="exportCSV()" class="btn-secondary text-xs" title="CSV 내보내기">
-          <iconify-icon icon="solar:download-bold-duotone" width="14"></iconify-icon>
-          내보내기
+        <button type="button" onclick="showPaperNetwork()" class="btn-secondary text-xs" title="논문 연관 네트워크">
+          <iconify-icon icon="solar:diagram-up-bold-duotone" width="14"></iconify-icon>
+          논문망
         </button>
+        <button type="button" onclick="openInstCompare()" class="btn-secondary text-xs" title="기관별 연구 성과 비교">
+          <iconify-icon icon="solar:buildings-3-bold-duotone" width="14"></iconify-icon>
+          기관비교
+        </button>
+        <!-- 내보내기 드롭다운 -->
+        <div class="relative">
+          <button type="button" id="exportMenuBtn" onclick="toggleExportMenu()" class="btn-secondary text-xs" title="내보내기">
+            <iconify-icon icon="solar:download-bold-duotone" width="14"></iconify-icon>
+            내보내기
+            <iconify-icon icon="solar:alt-arrow-down-bold" width="11"></iconify-icon>
+          </button>
+          <div id="exportMenu" class="hidden absolute right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-lg z-50 py-1 min-w-[130px]">
+            <button type="button" onclick="exportCSV()" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+              <iconify-icon icon="solar:file-text-bold-duotone" width="14" class="text-green-500"></iconify-icon>CSV
+            </button>
+            <button type="button" onclick="exportBibTeX()" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+              <iconify-icon icon="solar:document-bold-duotone" width="14" class="text-blue-500"></iconify-icon>BibTeX (.bib)
+            </button>
+            <button type="button" onclick="exportRIS()" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+              <iconify-icon icon="solar:file-check-bold-duotone" width="14" class="text-purple-500"></iconify-icon>RIS (.ris)
+            </button>
+          </div>
+        </div>
         <button type="button" onclick="copyShareLink()" class="btn-secondary text-xs" title="공유 링크 복사">
           <iconify-icon icon="solar:link-bold-duotone" width="14"></iconify-icon>
           공유
@@ -333,7 +362,9 @@
           <p class="text-xs text-gray-400">요청 URL:</p>
           <div id="ntisDebugUrl" class="text-xs font-mono text-blue-300 break-all"></div>
           <p class="text-xs text-gray-400 mt-2">응답 (원시 XML):</p>
-          <pre id="ntisDebugRaw" class="text-xs font-mono text-green-300 overflow-x-auto whitespace-pre-wrap break-all max-h-64 overflow-y-auto p-2 rounded" style="background:rgba(0,0,0,0.4);"></pre>
+          <pre id="ntisDebugRaw"
+            class="text-xs font-mono text-green-300 overflow-x-auto whitespace-pre-wrap break-all max-h-64 overflow-y-auto p-2 rounded"
+            style="background:rgba(0,0,0,0.4);"></pre>
         </div>
       </div>
     </div>
@@ -369,21 +400,26 @@
           </p>
           <div>
             <div class="text-xs font-semibold text-black mb-1">Client ID</div>
-            <input type="text" id="clientIdInput" placeholder="64자리 클라이언트 ID" class="input-field" autocomplete="off" oninput="autoSaveField('sc_client_id', this.value, 'clientId')">
+            <input type="text" id="clientIdInput" placeholder="64자리 클라이언트 ID" class="input-field" autocomplete="off"
+              oninput="autoSaveField('sc_client_id', this.value, 'clientId')">
           </div>
           <div>
             <div class="text-xs font-semibold text-black mb-1">인증키 (AES256)</div>
-            <input type="text" id="apiKeyInput" placeholder="발급받은 인증키 (32자)" class="input-field" autocomplete="off" oninput="autoSaveField('sc_api_key', this.value, 'apiKey')">
+            <input type="text" id="apiKeyInput" placeholder="발급받은 인증키 (32자)" class="input-field" autocomplete="off"
+              oninput="autoSaveField('sc_api_key', this.value, 'apiKey')">
           </div>
           <div>
             <div class="text-xs font-semibold text-black mb-1">MAC 주소</div>
-            <input type="text" id="macAddrInput" placeholder="예: 9C-6B-00-8C-64-FD" class="input-field" autocomplete="off" oninput="autoSaveField('sc_mac_addr', this.value, 'macAddr')">
+            <input type="text" id="macAddrInput" placeholder="예: 9C-6B-00-8C-64-FD" class="input-field"
+              autocomplete="off" oninput="autoSaveField('sc_mac_addr', this.value, 'macAddr')">
           </div>
           <div class="flex gap-2 pt-1">
-            <button type="button" onclick="requestToken()" id="tokenReqBtn" class="btn-primary flex-1 justify-center py-2 text-xs">
+            <button type="button" onclick="requestToken()" id="tokenReqBtn"
+              class="btn-primary flex-1 justify-center py-2 text-xs">
               토큰 발급
             </button>
-            <button type="button" onclick="probeToken()" id="tokenProbeBtn" class="btn-secondary flex-1 justify-center py-2 text-xs">
+            <button type="button" onclick="probeToken()" id="tokenProbeBtn"
+              class="btn-secondary flex-1 justify-center py-2 text-xs">
               자동 탐색
             </button>
           </div>
@@ -397,18 +433,21 @@
           </p>
           <div>
             <div class="text-xs font-semibold text-black mb-1">Access Token</div>
-            <textarea id="tokenInput" placeholder="토큰 발급 버튼 사용 권장" class="input-field text-xs font-mono" rows="2" oninput="autoSaveField('sc_token', this.value, 'token')"></textarea>
+            <textarea id="tokenInput" placeholder="토큰 발급 버튼 사용 권장" class="input-field text-xs font-mono" rows="2"
+              oninput="autoSaveField('sc_token', this.value, 'token')"></textarea>
           </div>
           <div>
             <div class="text-xs font-semibold text-black mb-1">Refresh Token</div>
-            <input type="text" id="refreshTokenInput" placeholder="자동 갱신용" class="input-field text-xs font-mono" autocomplete="off" oninput="autoSaveField('sc_refresh_token', this.value, 'refreshToken')">
+            <input type="text" id="refreshTokenInput" placeholder="자동 갱신용" class="input-field text-xs font-mono"
+              autocomplete="off" oninput="autoSaveField('sc_refresh_token', this.value, 'refreshToken')">
           </div>
           <div>
             <div class="text-xs font-semibold text-black mb-1 flex items-center gap-1">
               <iconify-icon icon="solar:buildings-3-bold-duotone" width="12"></iconify-icon>
               NTIS API 인증키
             </div>
-            <input type="text" id="ntisKeyInput" placeholder="NTIS 발급 인증키" class="input-field" autocomplete="off" oninput="autoSaveField('sc_ntis_key', this.value, 'ntisKey')">
+            <input type="text" id="ntisKeyInput" placeholder="NTIS 발급 인증키" class="input-field" autocomplete="off"
+              oninput="autoSaveField('sc_ntis_key', this.value, 'ntisKey')">
           </div>
           <div>
             <div class="text-xs font-semibold text-black mb-1 flex items-center gap-1.5">
@@ -416,7 +455,8 @@
               Cerebras API 키
               <span class="text-[10px] text-blue-500 font-normal">(기술사업화 분석용)</span>
             </div>
-            <input type="password" id="cerebrasKeyInput" placeholder="csk-..." class="input-field font-mono text-xs" autocomplete="off" oninput="autoSaveField('sc_cerebras_key', this.value, 'cerebrasKey')">
+            <input type="password" id="cerebrasKeyInput" placeholder="csk-..." class="input-field font-mono text-xs"
+              autocomplete="off" oninput="autoSaveField('sc_cerebras_key', this.value, 'cerebrasKey')">
             <p class="text-[10px] text-tertiary mt-0.5">cerebras.ai/account/api-keys 에서 발급</p>
           </div>
         </div>
@@ -430,7 +470,8 @@
         <button type="button" onclick="clearSettings()" class="btn-secondary flex-1 justify-center py-2.5">
           초기화
         </button>
-        <button type="button" onclick="probeToken()" class="btn-secondary flex-1 justify-center py-2.5 flex items-center gap-1">
+        <button type="button" onclick="probeToken()"
+          class="btn-secondary flex-1 justify-center py-2.5 flex items-center gap-1">
           <iconify-icon icon="solar:wifi-check-bold-duotone" width="14"></iconify-icon>
           연결 테스트
         </button>
@@ -458,7 +499,8 @@
       </div>
 
       <div class="flex gap-2 mb-4 flex-wrap">
-        <button type="button" class="tab-btn ntis-tab active" id="relTab-project" onclick="switchRelTab('project', this)">
+        <button type="button" class="tab-btn ntis-tab active" id="relTab-project"
+          onclick="switchRelTab('project', this)">
           <iconify-icon icon="solar:case-bold-duotone" width="13" class="inline-block mr-1"></iconify-icon>연관과제
         </button>
         <button type="button" class="tab-btn ntis-tab" id="relTab-paper" onclick="switchRelTab('paper', this)">
@@ -467,24 +509,192 @@
         <button type="button" class="tab-btn ntis-tab" id="relTab-patent" onclick="switchRelTab('patent', this)">
           <iconify-icon icon="solar:diploma-bold-duotone" width="13" class="inline-block mr-1"></iconify-icon>연관특허
         </button>
-        <button type="button" class="tab-btn ntis-tab" id="relTab-researchreport" onclick="switchRelTab('researchreport', this)">
+        <button type="button" class="tab-btn ntis-tab" id="relTab-researchreport"
+          onclick="switchRelTab('researchreport', this)">
           <iconify-icon icon="solar:file-text-bold-duotone" width="13" class="inline-block mr-1"></iconify-icon>연관보고서
         </button>
       </div>
 
       <div id="relatedResults" class="space-y-2">
-        <div class="flex justify-center py-8"><div class="spinner"></div></div>
+        <div class="flex justify-center py-8">
+          <div class="spinner"></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div id="toastContainer" style="position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px;"></div>
+  <div id="toastContainer"
+    style="position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px;"></div>
 
+
+  <!-- ══════════════════════════════════════════════════════════
+       Feature 2: 즐겨찾기 컬렉션 관리 모달
+  ══════════════════════════════════════════════════════════ -->
+  <div id="collectionModal" class="modal-bg hidden" onclick="if(event.target===this)closeCollectionManager()">
+    <div class="modal-box" style="max-width:560px;width:95vw;">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg flex items-center gap-2">
+          <iconify-icon icon="solar:folder-bold-duotone" width="20"></iconify-icon>
+          컬렉션 관리
+        </h2>
+        <button type="button" onclick="closeCollectionManager()" class="modal-close-btn" aria-label="닫기">
+          <iconify-icon icon="solar:close-circle-bold-duotone" width="22"></iconify-icon>
+        </button>
+      </div>
+
+      <!-- 새 컬렉션 만들기 -->
+      <div class="flex gap-2 mb-4">
+        <input id="newColName" type="text" placeholder="새 컬렉션 이름" class="input-field flex-1"
+          onkeydown="if(event.key==='Enter')createCollection()">
+        <input id="newColColor" type="color" value="#6366f1" class="w-10 h-10 rounded-lg border border-border cursor-pointer flex-shrink-0" title="컬렉션 색상">
+        <button type="button" onclick="createCollection()" class="btn-primary flex-shrink-0">
+          <iconify-icon icon="solar:add-circle-bold-duotone" width="15"></iconify-icon>생성
+        </button>
+      </div>
+
+      <!-- 컬렉션 목록 -->
+      <div id="collectionList" class="space-y-2 max-h-80 overflow-y-auto"></div>
+
+      <!-- 즐겨찾기 추가 피커 -->
+      <div id="colItemPickerWrap" class="hidden mt-4 border-t border-border pt-4">
+        <p class="text-xs font-semibold text-gray-500 mb-2">즐겨찾기에서 선택</p>
+        <div id="colItemPicker" class="max-h-48 overflow-y-auto space-y-0.5 border border-border rounded-xl p-2"></div>
+        <div class="flex gap-2 mt-3">
+          <button type="button" onclick="confirmAddToCollection()" class="btn-primary flex-1 justify-center">추가</button>
+          <button type="button" onclick="document.getElementById('colItemPickerWrap').classList.add('hidden')" class="btn-secondary flex-1 justify-center">취소</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       Feature 3: 태그 & 메모 패널
+  ══════════════════════════════════════════════════════════ -->
+  <div id="memoPanel" style="position:fixed;right:0;top:0;height:100%;width:320px;background:#fff;border-left:1px solid #e5e7eb;z-index:500;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.08);">
+    <style>#memoPanel.open{transform:translateX(0)}</style>
+    <div class="fav-header">
+      <div class="flex items-center gap-2">
+        <iconify-icon icon="solar:notes-bold-duotone" width="20"></iconify-icon>
+        <h2 class="font-bold text-base">메모</h2>
+      </div>
+      <button type="button" onclick="closeMemoPanel()" class="btn-secondary text-xs">
+        <iconify-icon icon="solar:close-circle-bold-duotone" width="14"></iconify-icon>닫기
+      </button>
+    </div>
+    <div class="p-4 space-y-4 flex-1 overflow-y-auto">
+      <div>
+        <p class="text-xs font-semibold text-gray-700 mb-1 truncate" id="memoPanelTitle"></p>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-gray-500 block mb-1">태그 (쉼표로 구분)</label>
+        <input id="memoTags" type="text" placeholder="예: 중요, 검토필요, AI" class="input-field w-full">
+      </div>
+      <div>
+        <label class="text-xs font-medium text-gray-500 block mb-1">메모</label>
+        <textarea id="memoText" rows="6" placeholder="자유롭게 메모를 입력하세요..." class="input-field w-full resize-none"></textarea>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" onclick="saveMemoPanel()" class="btn-primary flex-1 justify-center">
+          <iconify-icon icon="solar:check-circle-bold-duotone" width="14"></iconify-icon>저장
+        </button>
+        <button type="button" onclick="deleteMemo()" class="btn-secondary flex-shrink-0" title="메모 삭제">
+          <iconify-icon icon="solar:trash-bin-2-bold-duotone" width="14"></iconify-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       Feature 4: 논문 연관 네트워크 모달
+  ══════════════════════════════════════════════════════════ -->
+  <div id="paperNetworkModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:600;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)closePaperNetwork()">
+    <div class="bg-white rounded-2xl shadow-2xl flex flex-col" style="width:min(900px,95vw);height:min(680px,90dvh);">
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <iconify-icon icon="solar:diagram-up-bold-duotone" width="20"></iconify-icon>
+          <span class="font-bold text-base" id="paperNetworkTitle">논문 연관 네트워크</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-400">키워드 공유 기반 논문 유사도</span>
+          <button type="button" onclick="closePaperNetwork()" class="btn-secondary text-xs">
+            <iconify-icon icon="solar:close-circle-bold-duotone" width="14"></iconify-icon>닫기
+          </button>
+        </div>
+      </div>
+      <div id="paperNetworkContainer" class="flex-1 relative overflow-hidden rounded-b-2xl"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       Feature 5: 연구자 심층 프로필 패널
+  ══════════════════════════════════════════════════════════ -->
+  <div id="deepProfilePanel" style="position:fixed;right:0;top:0;height:100%;width:360px;background:#fff;border-left:1px solid #e5e7eb;z-index:500;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.08);">
+    <style>#deepProfilePanel.open{transform:translateX(0)}</style>
+    <div class="fav-header">
+      <div class="flex flex-col gap-0.5 flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <iconify-icon icon="solar:user-circle-bold-duotone" width="20"></iconify-icon>
+          <h2 class="font-bold text-base truncate" id="deepProfileName">연구자 프로필</h2>
+        </div>
+        <p class="text-xs text-gray-400 truncate ml-7" id="deepProfileInst"></p>
+      </div>
+      <button type="button" onclick="closeDeepProfile()" class="btn-secondary text-xs flex-shrink-0">
+        <iconify-icon icon="solar:close-circle-bold-duotone" width="14"></iconify-icon>닫기
+      </button>
+    </div>
+    <div id="deepProfileContent" class="p-4 space-y-4 flex-1 overflow-y-auto"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       Feature 6: 기관별 연구 성과 비교 모달
+  ══════════════════════════════════════════════════════════ -->
+  <div id="instCompareModal" class="modal-bg hidden" onclick="if(event.target===this)closeInstCompare()">
+    <div class="modal-box" style="max-width:700px;width:95vw;">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="font-bold text-lg flex items-center gap-2">
+            <iconify-icon icon="solar:buildings-3-bold-duotone" width="20"></iconify-icon>
+            기관별 연구 성과 비교
+          </h2>
+          <p class="text-xs text-gray-400 mt-0.5">기관명으로 논문·특허·보고서 건수를 비교합니다</p>
+        </div>
+        <button type="button" onclick="closeInstCompare()" class="modal-close-btn" aria-label="닫기">
+          <iconify-icon icon="solar:close-circle-bold-duotone" width="22"></iconify-icon>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">기관 A</label>
+          <input id="instInputA" type="text" placeholder="예: KAIST" class="input-field w-full"
+            onkeydown="if(event.key==='Enter')runInstCompare()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">기관 B</label>
+          <input id="instInputB" type="text" placeholder="예: POSTECH" class="input-field w-full"
+            onkeydown="if(event.key==='Enter')runInstCompare()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">기관 C (선택)</label>
+          <input id="instInputC" type="text" placeholder="예: 서울대학교" class="input-field w-full"
+            onkeydown="if(event.key==='Enter')runInstCompare()">
+        </div>
+      </div>
+
+      <button type="button" onclick="runInstCompare()" class="btn-primary w-full justify-center mb-5">
+        <iconify-icon icon="solar:chart-2-bold-duotone" width="15"></iconify-icon>
+        비교 분석 실행
+      </button>
+
+      <div id="instCompareResult"></div>
+    </div>
+  </div>
 
   <script src="js/state.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/api.js"></script>
   <script src="js/chart.js"></script>
+  <script src="js/features.js"></script>
   <script src="js/main.js"></script>
 
   <!-- =========================================================
@@ -502,7 +712,8 @@
             <iconify-icon icon="solar:restart-bold-duotone" width="14"></iconify-icon>
             재분석
           </button>
-          <button type="button" onclick="closeBudgetResult()" style="background:none; border:none; cursor:pointer; color:#9ca3af;" aria-label="닫기">
+          <button type="button" onclick="closeBudgetResult()"
+            style="background:none; border:none; cursor:pointer; color:#9ca3af;" aria-label="닫기">
             <iconify-icon icon="solar:close-circle-bold-duotone" width="24"></iconify-icon>
           </button>
         </div>
@@ -512,11 +723,10 @@
       <div id="budgetQueryForm" class="hidden">
         <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">분석할 과제명 또는 키워드를 입력하세요.</p>
         <div style="display:flex; gap:0.5rem;">
-          <input id="budgetQueryInput" class="budget-input" type="text"
-            placeholder="예: 재난안전 플랫폼 개발"
-            style="flex:1;"
+          <input id="budgetQueryInput" class="budget-input" type="text" placeholder="예: 재난안전 플랫폼 개발" style="flex:1;"
             onkeydown="if(event.key==='Enter'){ event.preventDefault(); _startBudgetWithQuery(document.getElementById('budgetQueryInput').value); }">
-          <button id="runBtn" type="button" class="btn-budget" onclick="_startBudgetWithQuery(document.getElementById('budgetQueryInput').value)"
+          <button id="runBtn" type="button" class="btn-budget"
+            onclick="_startBudgetWithQuery(document.getElementById('budgetQueryInput').value)"
             style="white-space:nowrap;">
             <iconify-icon icon="solar:calculator-bold-duotone" width="16"></iconify-icon>
             분석 시작
@@ -533,7 +743,8 @@
           <div class="budget-step" id="budgetStep4"></div>
           <div class="budget-step" id="budgetStep5"></div>
         </div>
-        <p id="budgetStepLabel" style="font-size:0.8125rem; color:#7c3aed; font-weight:600; text-align:center; margin-bottom:0.75rem;"></p>
+        <p id="budgetStepLabel"
+          style="font-size:0.8125rem; color:#7c3aed; font-weight:600; text-align:center; margin-bottom:0.75rem;"></p>
         <div class="budget-process-log" id="budgetProcessLog"></div>
       </div>
 
@@ -556,7 +767,8 @@
             style="display:flex; align-items:center; gap:0.375rem; font-size:0.8125rem; padding:0.45rem 0.9rem;">
             <iconify-icon icon="solar:copy-bold-duotone" width="15"></iconify-icon> 전체 복사
           </button>
-          <button type="button" onclick="closeBudgetReport()" style="background:none; border:none; cursor:pointer; color:#9ca3af;" aria-label="닫기">
+          <button type="button" onclick="closeBudgetReport()"
+            style="background:none; border:none; cursor:pointer; color:#9ca3af;" aria-label="닫기">
             <iconify-icon icon="solar:close-circle-bold-duotone" width="24"></iconify-icon>
           </button>
         </div>
@@ -564,8 +776,7 @@
       <p style="font-size:0.75rem; color:#6b7280; margin-bottom:0.75rem;">
         아래 내용을 그대로 복사하여 기획보고서(HWP·Word·Docs)에 붙여넣기 하세요.
       </p>
-      <textarea id="budgetReportText" readonly aria-label="기획보고서 초안 내용"
-        style="width:100%; height:60vh; font-family:'Pretendard','Malgun Gothic',monospace; font-size:0.78rem; line-height:1.7;
+      <textarea id="budgetReportText" readonly aria-label="기획보고서 초안 내용" style="width:100%; height:60vh; font-family:'Pretendard','Malgun Gothic',monospace; font-size:0.78rem; line-height:1.7;
                border:1px solid #e5e7eb; border-radius:0.75rem; padding:1rem; resize:vertical;
                background:#fafafa; color:#1f2937; white-space:pre; overflow:auto;"></textarea>
     </div>
@@ -583,6 +794,9 @@
         <span id="favPanelCount" class="text-xs text-gray-400"></span>
       </div>
       <div class="flex items-center gap-2">
+        <button type="button" onclick="openCollectionManager()" class="btn-secondary text-xs" title="컬렉션 관리">
+          <iconify-icon icon="solar:folder-bold-duotone" width="13"></iconify-icon>컬렉션
+        </button>
         <button type="button" onclick="exportFavCSV()" class="btn-secondary text-xs" title="즐겨찾기 CSV 내보내기">
           <iconify-icon icon="solar:download-bold-duotone" width="13"></iconify-icon>내보내기
         </button>
