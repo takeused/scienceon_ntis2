@@ -36,7 +36,7 @@
 
     function getApiBase() {
       const base = getProxyBase();
-      return base ? `${base}/api` : API_BASE_DIRECT;
+      return base !== null ? `${base}/api` : API_BASE_DIRECT;
     }
 
     async function doSearch(page = 1) {
