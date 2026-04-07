@@ -109,7 +109,8 @@
 
     // ── 프록시 우선순위: 로컬(3737) → Vercel(Seoul/icn1) → Cloudflare Worker → 직접 호출
     const PROXY_BASE     = 'http://127.0.0.1:3737';
-    const VERCEL_BASE    = 'https://scienceon-ntis.vercel.app';
+    // file 프로토콜 직접 접근 시 운영 Vercel, 로컬/운영 호스팅 시 동적 오리진 사용
+    const VERCEL_BASE    = window.location.protocol === 'file:' ? 'https://scienceon-ntis.vercel.app' : '';
     const CF_WORKER_BASE = 'https://scienceon-proxy.takeused.workers.dev';
     const API_BASE_DIRECT  = 'https://apigateway.kisti.re.kr/openapicall.do';
     const TOKEN_URL_DIRECT = 'https://apigateway.kisti.re.kr/tokenrequest.do';
@@ -3133,8 +3134,9 @@ Respond ONLY with this JSON structure:
     }
 
     function hideAll() {
-      ['emptyState', 'noResultState', 'loadingState'].forEach(id => {
-        document.getElementById(id).classList.add('hidden');
+      ['emptyState', 'noResultState', 'loadingState', 'analysisSection'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
       });
       document.getElementById('resultsGrid').innerHTML = '';
       document.getElementById('pagination').classList.add('hidden');
@@ -3540,7 +3542,7 @@ Respond ONLY with this JSON structure:
       const fetchOne = async (query) => {
         const params = new URLSearchParams({ client_id: STATE.clientId, token: STATE.token,
           version: '1.0', action: 'search', target: STATE.currentTarget,
-          searchQuery: query, curPage: 1, rowCount: 5 });
+          searchQuery: JSON.stringify({ BI: query }), curPage: 1, rowCount: 5 });
         const resp = await fetch(`${getApiBase()}?${params}`);
         return new DOMParser().parseFromString(await resp.text(), 'text/xml');
       };
