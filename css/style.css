@@ -735,3 +735,35 @@
     }
     .fav-btn.active { color: #f59e0b; }
     .fav-btn:hover { color: #f59e0b; }
+    /* ── 클라이언트 정렬 버튼 ── */
+    .sort-btn {
+      padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 500;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--secondary); cursor: pointer; transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .sort-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+    .sort-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+    /* ── 키워드 클라우드 태그 ── */
+    .keyword-cloud-tag {
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 3px 10px; border-radius: 999px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--secondary); cursor: pointer; transition: all 0.15s;
+      white-space: nowrap; line-height: 1.4;
+    }
+    .keyword-cloud-tag:hover { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.06); }
+
+    /* ── 저자 링크 (클릭 가능) ── */
+    .author-link {
+      cursor: pointer; color: var(--secondary);
+      border-bottom: 1px dashed var(--border);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .author-link:hover { color: #3b82f6; border-color: #3b82f6; }
+
+    /* ── 인사이트 모달 차트 래퍼 ── */
+    #yearChartWrap, #instChartWrap {
+      height: 200px; position: relative;
+    }

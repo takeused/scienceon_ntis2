@@ -252,6 +252,22 @@
           <iconify-icon icon="solar:tuning-2-bold-duotone" width="14"></iconify-icon>
           상세 검색
         </button>
+        <button type="button" onclick="showYearInstCharts()" class="btn-secondary text-xs" title="연도별/기관별 분포 차트">
+          <iconify-icon icon="solar:pie-chart-2-bold-duotone" width="14"></iconify-icon>
+          인사이트
+        </button>
+      </div>
+    </div>
+
+    <!-- 인사이트 바: 키워드 클라우드 + 정렬 -->
+    <div id="sortBar" class="hidden mb-4 space-y-2">
+      <div id="keywordCloud" class="flex flex-wrap gap-1.5"></div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-gray-400">결과 내 정렬</span>
+        <button type="button" class="sort-btn active" data-sort="" onclick="applyClientSort('')">기본순</button>
+        <button type="button" class="sort-btn" data-sort="year-desc" onclick="applyClientSort('year-desc')">최신순</button>
+        <button type="button" class="sort-btn" data-sort="year-asc" onclick="applyClientSort('year-asc')">오래된순</button>
+        <button type="button" class="sort-btn" data-sort="title" onclick="applyClientSort('title')">제목순</button>
       </div>
     </div>
 
@@ -592,6 +608,46 @@
       </button>
     </div>
     <div id="profileContent" class="p-5 space-y-4"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       인사이트 모달 (연도별 + 기관별 차트)
+  ══════════════════════════════════════════════════════════ -->
+  <div id="analyticsModal" class="modal-bg hidden" onclick="if(event.target===this)closeAnalyticsModal()">
+    <div class="modal-box" style="max-width:720px; width:95vw;">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-black font-bold text-lg flex items-center gap-2">
+            <iconify-icon icon="solar:pie-chart-2-bold-duotone" width="20"></iconify-icon>
+            검색 결과 인사이트
+          </h2>
+          <p id="analyticsQuery" class="text-gray-400 text-xs mt-0.5"></p>
+        </div>
+        <button type="button" onclick="closeAnalyticsModal()" class="modal-close-btn" aria-label="닫기">
+          <iconify-icon icon="solar:close-circle-bold-duotone" width="22"></iconify-icon>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <p class="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <iconify-icon icon="solar:chart-2-bold-duotone" width="14"></iconify-icon>
+            연도별 분포
+          </p>
+          <div id="yearChartWrap">
+            <canvas id="yearChartCanvas"></canvas>
+          </div>
+        </div>
+        <div>
+          <p class="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <iconify-icon icon="solar:buildings-3-bold-duotone" width="14"></iconify-icon>
+            기관별 분포
+          </p>
+          <div id="instChartWrap">
+            <canvas id="instChartCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
