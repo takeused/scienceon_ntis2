@@ -4,6 +4,7 @@
   "rewrites": [
     { "source": "/api", "destination": "/api/proxy" },
     { "source": "/health", "destination": "/api/proxy" },
+    { "source": "/myip", "destination": "/api/proxy" },
     { "source": "/ntis", "destination": "/api/proxy" },
     { "source": "/ntis/connection", "destination": "/api/proxy" },
     { "source": "/ntis/related", "destination": "/api/proxy" },
