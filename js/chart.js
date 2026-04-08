@@ -80,26 +80,52 @@
               searchQuery, curPage: page, rowCount: PAGE,
             });
             const resp = await fetch(`${getApiBase()}?${params}`);
-            const xml  = new DOMParser().parseFromString(await resp.text(), 'text/xml');
+            const text = await resp.text();
+            const xml  = new DOMParser().parseFromString(text, 'text/xml');
+
+            // 에러 코드 체크
+            const errEl = xml.querySelector('errorCode, ErrorCode, error_code');
+            if (errEl && errEl.textContent.trim()) {
+              console.warn('[Trend Patent] API 오류:', errEl.textContent.trim(), text.slice(0, 300));
+              break;
+            }
+
             if (page === 1) {
               const el = xml.querySelector('TotalCount') || xml.querySelector('totalCount');
               total = parseInt(el?.textContent) || 0;
+              console.log('[Trend Patent] TotalCount:', total, '| URL:', `${getApiBase()}?${params}`);
               if (total === 0) break;
             }
-            const records = Array.from(xml.querySelectorAll('recordList record, record'));
+
+            // recordList record → 없으면 PATENT, Patent 태그 fallback
+            let records = Array.from(xml.querySelectorAll('recordList record'));
+            if (records.length === 0) records = Array.from(xml.querySelectorAll('PATENT, Patent'));
+            console.log(`[Trend Patent] page=${page} records=${records.length}`);
             if (records.length === 0) break;
+
             records.forEach(rec => {
-              const rawYear = rec.querySelector('item[metaCode="Pubyear"]')?.textContent ||
-                              rec.querySelector('item[metaCode="ApplDate"]')?.textContent ||
-                              rec.querySelector('item[metaCode="RegisterDate"]')?.textContent ||
-                              rec.querySelector('item[metaCode="PublDate"]')?.textContent || '';
+              // getVal() 패턴: metaCode 속성 우선, 직접 태그 fallback
+              const readField = (...fields) => {
+                for (const f of fields) {
+                  const byMeta = rec.querySelector(`item[metaCode="${f}"]`);
+                  if (byMeta?.textContent.trim()) return byMeta.textContent.trim();
+                  const byTag = rec.querySelector(f);
+                  if (byTag?.textContent.trim()) return byTag.textContent.trim();
+                }
+                return '';
+              };
+              const rawYear = readField('Pubyear', 'ApplDate', 'RegisterDate', 'PublDate');
               const y = parseInt(rawYear.substring(0, 4));
               if (y >= 2000 && counts[y] !== undefined) counts[y]++;
             });
             fetched += records.length;
             if (fetched >= total) break;
-          } catch { break; }
+          } catch (e) {
+            console.error('[Trend Patent] fetch error:', e);
+            break;
+          }
         }
+        console.log('[Trend Patent] counts:', counts, '| total:', total, '| fetched:', fetched);
         let scaled = years.map(y => counts[y]);
         if (fetched > 0 && total > fetched) {
           const ratio = total / fetched;
