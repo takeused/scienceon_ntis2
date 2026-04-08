@@ -48,6 +48,25 @@
       const startYear   = currentYear - 9; // 10년치
       const years = Array.from({ length: 10 }, (_, i) => startYear + i);
 
+      // 토큰 만료 시 자동 갱신 후 재시도
+      const safeFetch = async (url) => {
+        const resp = await fetch(url);
+        const text = await resp.text();
+        // 토큰 만료 감지
+        if (text.includes('E4103') || text.includes('token') && text.includes('expire')) {
+          if (typeof autoRequestToken === 'function') await autoRequestToken();
+        }
+        return text;
+      };
+
+      // XML에서 TotalCount 읽기 (getElementsByTagName 사용 — XML 문서 호환)
+      const getTotalCount = (xml) => {
+        const els = xml.getElementsByTagName('TotalCount');
+        if (els.length) return parseInt(els[0].textContent) || 0;
+        const els2 = xml.getElementsByTagName('totalCount');
+        return els2.length ? parseInt(els2[0].textContent) || 0 : 0;
+      };
+
       const fetchPaperCount = async (year) => {
         try {
           const searchQuery = JSON.stringify({ BI: query, PY: String(year) });
@@ -56,10 +75,9 @@
             version: '1.0', action: 'search', target: 'ARTI',
             searchQuery, curPage: 1, rowCount: 1,
           });
-          const resp = await fetch(`${getApiBase()}?${params}`);
-          const xml  = new DOMParser().parseFromString(await resp.text(), 'text/xml');
-          const el   = xml.querySelector('TotalCount') || xml.querySelector('totalCount');
-          return parseInt(el?.textContent) || 0;
+          const text = await safeFetch(`${getApiBase()}?${params}`);
+          const xml  = new DOMParser().parseFromString(text, 'text/xml');
+          return getTotalCount(xml);
         } catch { return 0; }
       };
 
@@ -89,20 +107,15 @@
               version: '1.0', action: 'search', target: 'PATENT',
               searchQuery, curPage: page, rowCount: PAGE,
             });
-            const resp = await fetch(`${getApiBase()}?${params}`);
-            const text = await resp.text();
+            const text = await safeFetch(`${getApiBase()}?${params}`);
             const xml  = new DOMParser().parseFromString(text, 'text/xml');
 
-            // 에러 코드 체크 (getElementsByTagName 사용)
+            // 에러 코드 체크
             const errEls = xml.getElementsByTagName('errorCode');
-            if (errEls.length > 0 && errEls[0].textContent.trim()) {
-              console.warn('[Trend Patent] API 오류:', errEls[0].textContent.trim());
-              break;
-            }
+            if (errEls.length > 0 && errEls[0].textContent.trim()) break;
 
             if (page === 1) {
-              const totalEls = xml.getElementsByTagName('TotalCount');
-              total = parseInt(totalEls[0]?.textContent) || 0;
+              total = getTotalCount(xml);
               if (total === 0) break;
             }
 
