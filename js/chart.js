@@ -77,7 +77,7 @@
             const params = new URLSearchParams({
               client_id: STATE.clientId, token: STATE.token,
               version: '1.0', action: 'search', target: 'PATENT',
-              searchQuery, curPage: page, rowCount: PAGE, sortField: 'pubyear',
+              searchQuery, curPage: page, rowCount: PAGE,
             });
             const resp = await fetch(`${getApiBase()}?${params}`);
             const xml  = new DOMParser().parseFromString(await resp.text(), 'text/xml');
