@@ -120,17 +120,29 @@
             const text = await (await fetch(url)).text();
             const xml  = new DOMParser().parseFromString(text, 'text/xml');
 
-            // 에러 코드 체크
+            // 파서 에러 체크
+            const parseErr = xml.getElementsByTagName('parsererror');
+            if (parseErr.length > 0) { console.error('[Patent] XML parse error', text.slice(0,200)); break; }
+
+            // API 에러 코드 체크
             const errEls = xml.getElementsByTagName('errorCode');
-            if (errEls.length > 0 && errEls[0].textContent.trim()) break;
+            if (errEls.length > 0 && errEls[0].textContent.trim()) {
+              console.warn('[Patent] API error:', errEls[0].textContent, text.slice(0,300));
+              break;
+            }
 
             if (page === 1) {
               total = getTotalCount(xml);
+              console.log('[Patent] TotalCount:', total, '| text length:', text.length);
               if (total === 0) break;
             }
 
             const records = Array.from(xml.getElementsByTagName('record'));
-            if (records.length === 0) break;
+            console.log('[Patent] page', page, 'records:', records.length);
+            if (records.length === 0) {
+              console.warn('[Patent] records=0, text sample:', text.slice(0, 400));
+              break;
+            }
 
             records.forEach(rec => {
               // 출원일(ApplDate) 우선, 없으면 등록일(GrantDate), 공개일(PublDate)
@@ -153,10 +165,12 @@
         return { patentCounts: scaled, patentQueryUsed, total };
       };
 
-      const [paperCounts, patentResult] = await Promise.all([
-        Promise.all(years.map(fetchPaperCount)),
-        fetchPatentYearDist(),
-      ]);
+      // 논문: 순차 요청 (병렬 시 rate-limit으로 대부분 실패)
+      const paperCounts = [];
+      for (const year of years) {
+        paperCounts.push(await fetchPaperCount(year));
+      }
+      const patentResult = await fetchPatentYearDist();
 
       return {
         years, paperCounts,
