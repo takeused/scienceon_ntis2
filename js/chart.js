@@ -71,6 +71,16 @@
         const PAGE = 100;
         const MAX_PAGES = 5;
 
+        // XML에서 특정 metaCode 값 읽기 (querySelector 대신 getElementsByTagName 사용 — XML 문서 호환성)
+        const readMetaCode = (rec, ...codes) => {
+          const items = Array.from(rec.getElementsByTagName('item'));
+          for (const code of codes) {
+            const el = items.find(el => el.getAttribute('metaCode') === code);
+            if (el && el.textContent.trim()) return el.textContent.trim();
+          }
+          return '';
+        };
+
         for (let page = 1; page <= MAX_PAGES; page++) {
           try {
             const searchQuery = JSON.stringify({ BI: patentQueryUsed });
@@ -83,38 +93,25 @@
             const text = await resp.text();
             const xml  = new DOMParser().parseFromString(text, 'text/xml');
 
-            // 에러 코드 체크
-            const errEl = xml.querySelector('errorCode, ErrorCode, error_code');
-            if (errEl && errEl.textContent.trim()) {
-              console.warn('[Trend Patent] API 오류:', errEl.textContent.trim(), text.slice(0, 300));
+            // 에러 코드 체크 (getElementsByTagName 사용)
+            const errEls = xml.getElementsByTagName('errorCode');
+            if (errEls.length > 0 && errEls[0].textContent.trim()) {
+              console.warn('[Trend Patent] API 오류:', errEls[0].textContent.trim());
               break;
             }
 
             if (page === 1) {
-              const el = xml.querySelector('TotalCount') || xml.querySelector('totalCount');
-              total = parseInt(el?.textContent) || 0;
-              console.log('[Trend Patent] TotalCount:', total, '| URL:', `${getApiBase()}?${params}`);
+              const totalEls = xml.getElementsByTagName('TotalCount');
+              total = parseInt(totalEls[0]?.textContent) || 0;
               if (total === 0) break;
             }
 
-            // recordList record → 없으면 PATENT, Patent 태그 fallback
-            let records = Array.from(xml.querySelectorAll('recordList record'));
-            if (records.length === 0) records = Array.from(xml.querySelectorAll('PATENT, Patent'));
-            console.log(`[Trend Patent] page=${page} records=${records.length}`);
+            const records = Array.from(xml.getElementsByTagName('record'));
             if (records.length === 0) break;
 
             records.forEach(rec => {
-              // getVal() 패턴: metaCode 속성 우선, 직접 태그 fallback
-              const readField = (...fields) => {
-                for (const f of fields) {
-                  const byMeta = rec.querySelector(`item[metaCode="${f}"]`);
-                  if (byMeta?.textContent.trim()) return byMeta.textContent.trim();
-                  const byTag = rec.querySelector(f);
-                  if (byTag?.textContent.trim()) return byTag.textContent.trim();
-                }
-                return '';
-              };
-              const rawYear = readField('Pubyear', 'ApplDate', 'RegisterDate', 'PublDate');
+              // 출원일(ApplDate) 우선, 없으면 등록일(GrantDate), 공개일(PublDate)
+              const rawYear = readMetaCode(rec, 'ApplDate', 'GrantDate', 'PublDate', 'Pubyear');
               const y = parseInt(rawYear.substring(0, 4));
               if (y >= 2000 && counts[y] !== undefined) counts[y]++;
             });
@@ -125,7 +122,6 @@
             break;
           }
         }
-        console.log('[Trend Patent] counts:', counts, '| total:', total, '| fetched:', fetched);
         let scaled = years.map(y => counts[y]);
         if (fetched > 0 && total > fetched) {
           const ratio = total / fetched;
