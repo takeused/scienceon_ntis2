@@ -2906,33 +2906,12 @@ Respond ONLY with this JSON structure:
         document.getElementById('compareInputA').value = STATE.currentQuery || '';
       }
     }
-    async function runCompare() {
-      const qA = document.getElementById('compareInputA').value.trim();
-      const qB = document.getElementById('compareInputB').value.trim();
-      if (!qA || !qB) { showToast('두 검색어를 모두 입력하세요.', 'warning'); return; }
-      document.getElementById('compareLabelA').textContent = `"${qA}" — ${getTargetLabel(STATE.currentTarget)}`;
-      document.getElementById('compareLabelB').textContent = `"${qB}" — ${getTargetLabel(STATE.currentTarget)}`;
-      document.getElementById('compareGridA').innerHTML = '<div class="text-center text-gray-400 py-8"><div class="spinner mx-auto"></div></div>';
-      document.getElementById('compareGridB').innerHTML = '<div class="text-center text-gray-400 py-8"><div class="spinner mx-auto"></div></div>';
-      const fetchOne = async (query) => {
-        const params = new URLSearchParams({ client_id: STATE.clientId, token: STATE.token,
-          version: '1.0', action: 'search', target: STATE.currentTarget,
-          searchQuery: JSON.stringify({ BI: query }), curPage: 1, rowCount: 5 });
-        const resp = await fetch(`${getApiBase()}?${params}`);
-        return new DOMParser().parseFromString(await resp.text(), 'text/xml');
-      };
-      const [xmlA, xmlB] = await Promise.all([fetchOne(qA), fetchOne(qB)]).catch(e => {
-        showToast('비교 검색 오류: ' + e.message, 'error'); return [null,null];
-      });
-      const renderCompareGrid = (xml, gridId) => {
-        if (!xml) return;
-        const items = getItems(xml);
-        document.getElementById(gridId).innerHTML = items.length
-          ? items.map((item,i) => renderCard(item, i, '')).join('')
-          : '<p class="text-center text-gray-400 text-sm py-8">결과 없음</p>';
-      };
-      renderCompareGrid(xmlA, 'compareGridA');
-      renderCompareGrid(xmlB, 'compareGridB');
+    function renderCompareGrid(xml, gridId) {
+      if (!xml) return;
+      const items = getItems(xml);
+      document.getElementById(gridId).innerHTML = items.length
+        ? items.map((item,i) => renderCard(item, i, '')).join('')
+        : '<p class="text-center text-gray-400 text-sm py-8">결과 없음</p>';
     }
 
     // Toast
