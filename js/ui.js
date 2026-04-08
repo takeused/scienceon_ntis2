@@ -577,7 +577,7 @@
       if (addQuery)  params.append('addQuery', addQuery);
       
       const proxyBase = getProxyBase();
-      if (!proxyBase) {
+      if (proxyBase === null) {
         setLoading(false);
         document.getElementById('emptyState').classList.add('hidden');
         // 직접 NTIS URL 생성 (프록시 없이 브라우저에서 열기용)
