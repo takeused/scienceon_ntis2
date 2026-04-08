@@ -48,18 +48,22 @@
       const startYear   = currentYear - 9; // 10년치
       const years = Array.from({ length: 10 }, (_, i) => startYear + i);
 
-      // 토큰 만료 시 자동 갱신 후 재시도
-      const safeFetch = async (url) => {
-        const resp = await fetch(url);
+      // 시작 전 토큰 유효성 확인 — 만료 시 갱신
+      const ensureToken = async () => {
+        const testParams = new URLSearchParams({
+          client_id: STATE.clientId, token: STATE.token,
+          version: '1.0', action: 'search', target: 'ARTI',
+          searchQuery: JSON.stringify({ BI: query }), curPage: 1, rowCount: 1,
+        });
+        const resp = await fetch(`${getApiBase()}?${testParams}`);
         const text = await resp.text();
-        // 토큰 만료 감지
-        if (text.includes('E4103') || text.includes('token') && text.includes('expire')) {
+        if (text.includes('E4103')) {
           if (typeof autoRequestToken === 'function') await autoRequestToken();
         }
-        return text;
       };
+      await ensureToken();
 
-      // XML에서 TotalCount 읽기 (getElementsByTagName 사용 — XML 문서 호환)
+      // XML에서 TotalCount 읽기 (getElementsByTagName — XML 문서 호환)
       const getTotalCount = (xml) => {
         const els = xml.getElementsByTagName('TotalCount');
         if (els.length) return parseInt(els[0].textContent) || 0;
@@ -67,15 +71,23 @@
         return els2.length ? parseInt(els2[0].textContent) || 0 : 0;
       };
 
+      // URL 빌드 시 STATE.token 참조 (항상 최신 토큰 사용)
+      const buildApiUrl = (target, extra) => {
+        const params = new URLSearchParams({
+          client_id: STATE.clientId, token: STATE.token,
+          version: '1.0', action: 'search', target,
+          ...extra,
+        });
+        return `${getApiBase()}?${params}`;
+      };
+
       const fetchPaperCount = async (year) => {
         try {
-          const searchQuery = JSON.stringify({ BI: query, PY: String(year) });
-          const params = new URLSearchParams({
-            client_id: STATE.clientId, token: STATE.token,
-            version: '1.0', action: 'search', target: 'ARTI',
-            searchQuery, curPage: 1, rowCount: 1,
+          const url = buildApiUrl('ARTI', {
+            searchQuery: JSON.stringify({ BI: query, PY: String(year) }),
+            curPage: 1, rowCount: 1,
           });
-          const text = await safeFetch(`${getApiBase()}?${params}`);
+          const text = await (await fetch(url)).text();
           const xml  = new DOMParser().parseFromString(text, 'text/xml');
           return getTotalCount(xml);
         } catch { return 0; }
@@ -101,13 +113,11 @@
 
         for (let page = 1; page <= MAX_PAGES; page++) {
           try {
-            const searchQuery = JSON.stringify({ BI: patentQueryUsed });
-            const params = new URLSearchParams({
-              client_id: STATE.clientId, token: STATE.token,
-              version: '1.0', action: 'search', target: 'PATENT',
-              searchQuery, curPage: page, rowCount: PAGE,
+            const url = buildApiUrl('PATENT', {
+              searchQuery: JSON.stringify({ BI: patentQueryUsed }),
+              curPage: page, rowCount: PAGE,
             });
-            const text = await safeFetch(`${getApiBase()}?${params}`);
+            const text = await (await fetch(url)).text();
             const xml  = new DOMParser().parseFromString(text, 'text/xml');
 
             // 에러 코드 체크
