@@ -63,6 +63,8 @@
       };
       await ensureToken();
 
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+
       // XML에서 TotalCount 읽기 (getElementsByTagName — XML 문서 호환)
       const getTotalCount = (xml) => {
         const els = xml.getElementsByTagName('TotalCount');
@@ -107,7 +109,21 @@
               searchQuery: queryObjStr,
               curPage: page, rowCount: PAGE,
             });
-            const text = await (await fetch(url)).text();
+            
+            let text = '';
+            let attempts = 0;
+            while (attempts < 2) {
+              const resp = await fetch(url);
+              if (resp.status === 429) {
+                console.warn(`[${target}] 429 hit (page ${page}), retrying in 600ms...`);
+                await sleep(600);
+                attempts++;
+                continue;
+              }
+              text = await resp.text();
+              break;
+            }
+
             const xml  = new DOMParser().parseFromString(text, 'text/xml');
 
             const parseErr = xml.getElementsByTagName('parsererror');
@@ -136,6 +152,9 @@
             });
             fetched += records.length;
             if (fetched >= total) break;
+            
+            // 페이지 간 짧은 지연 (KISTI 서버 보호)
+            await sleep(150);
           } catch (e) {
             console.error(`[Trend ${target}] fetch error:`, e);
             break;
@@ -150,10 +169,11 @@
         return { counts: scaled, total };
       };
 
-      const [paperResult, patentResult] = await Promise.all([
-        fetchYearDist('ARTI', JSON.stringify({ BI: query })),
-        fetchYearDist('PATENT', JSON.stringify({ BI: query }))
-      ]);
+      // 논문과 특허를 순차적으로 요청하여 동시 접속 부하 분산
+      const paperResult = await fetchYearDist('ARTI', JSON.stringify({ BI: query }));
+      console.log('[Trend] Paper data collection done. Waiting 500ms for Patent...');
+      await sleep(500); 
+      const patentResult = await fetchYearDist('PATENT', JSON.stringify({ BI: query }));
 
       return {
         years, 
