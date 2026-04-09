@@ -3165,8 +3165,11 @@ Respond ONLY with:
     }
 
     // ── Step 2: NTIS 과제 수집 ──────────────────────────────────
-    async function fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect) {
+    async function fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect, displayCnt = 30) {
       if (!STATE.ntisKey) throw new Error('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.');
+
+      const proxyBase = getProxyBase();
+      if (!proxyBase) throw new Error('프록시 서버가 연결되어 있지 않습니다. 로컬 프록시(node proxy-server.js)를 실행하거나 설정에서 프록시를 선택해주세요.');
 
       const allItems = [];
       const seenIds = new Set();
@@ -3178,7 +3181,7 @@ Respond ONLY with:
           collection: 'project',
           SRWR: kw,      // 최신 API 필수 파라미터 병행
           query: kw,     // 하위 호환성용
-          displayCnt: 30,
+          displayCnt: displayCnt,
           startPosition: 1,
           searchRnkn: 'Y',
           naviCount: 5,
@@ -3192,7 +3195,7 @@ Respond ONLY with:
         
         while (tries < 3) {
           try {
-            resp = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
+            resp = await fetch(`${proxyBase}/ntis?${params.toString()}`);
             if (resp.status === 429) {
               addBudgetLog('⏳', `API 부하(429) 발생 → 재시도 준비 (${tries + 1}/3)`);
               await sleep(600 + Math.random() * 400);
@@ -3207,9 +3210,28 @@ Respond ONLY with:
         }
 
         try {
-          if (!resp || !resp.ok) continue;
+          if (!resp || !resp.ok) {
+            addBudgetLog('⚠️', `"${kw}" HTTP 오류: ${resp ? resp.status : '응답 없음'}`);
+            continue;
+          }
           const text = await resp.text();
           const xml = new DOMParser().parseFromString(text, 'text/xml');
+
+          // XML 파싱 오류 감지
+          if (xml.getElementsByTagName('parsererror').length > 0) {
+            addBudgetLog('⚠️', `"${kw}" XML 파싱 실패 — 유효하지 않은 응답`);
+            addBudgetLog('🔍', `RAW 응답: ${text.substring(0, 300)}`);
+            continue;
+          }
+
+          // NTIS API 오류 코드 감지 (일반 검색과 동일하게 처리)
+          const gxErr = (tag) => xml.getElementsByTagName(tag)[0]?.textContent?.trim() || '';
+          const errCode = gxErr('CODE') || gxErr('returnCode');
+          const errMsg  = gxErr('MESSAGE') || gxErr('returnMsg');
+          if (errCode && errCode !== '0') {
+            addBudgetLog('❌', `NTIS API 오류 [${errCode}]: ${errMsg}`);
+            throw new Error(`NTIS API 오류 [${errCode}]: ${errMsg}`);
+          }
 
           // HIT 태그 폴백 (NTIS 응답 구조 변형 대응)
           let items = Array.from(xml.getElementsByTagName('HIT'));
@@ -3224,10 +3246,10 @@ Respond ONLY with:
             params.set('query', noSpaceKw);
             params.set('SRWR', noSpaceKw);
             
-            let resp2 = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
+            let resp2 = await fetch(`${proxyBase}/ntis?${params.toString()}`);
             if (resp2.status === 429) {
               await sleep(800);
-              resp2 = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
+              resp2 = await fetch(`${proxyBase}/ntis?${params.toString()}`);
             }
 
             if (resp2 && resp2.ok) {
@@ -3973,7 +3995,7 @@ ${'='.repeat(64)}
           const firstWord = projName.split(/[\s,]+/)[0];
           const superBroadKeywords = [firstWord];
           // durationYears=0으로 넘겨서 기간 필터 사실상 해제
-          rawItems = await fetchNTISForBudget(superBroadKeywords, 0, 'ALL', 'ALL');
+          rawItems = await fetchNTISForBudget(superBroadKeywords, 0, 'ALL', 'ALL', 100);
         }
 
         if (rawItems.length === 0) {
