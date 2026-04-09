@@ -3312,27 +3312,34 @@ Respond ONLY with:
             if (bizSect && bizSect !== '전체' && bizSect !== 'ALL' && biz && !biz.includes(bizSect)) continue;
 
             // ── 연간 예산 산출 ──────────────────────────────────────
-            // 1순위: totFund / 수행연수 (평균 연간 예산, 가장 신뢰도 높음)
-            // 2순위: fundThyr (당해연도 예산, 연차 편차 있음을 감안)
-            // 기간 미상이면 국내 R&D 평균 3년 가정 (제외하지 않고 경고 태그 부여)
             let annualBudget = 0;
             let budgetSource = '';
+            
+            // NTIS 예산 데이터 추출 보강
+            const rawTot = gv('TotalFunds') || gv('TOT_FUND') || gv('TOTFUND') || gv('totfund') || '0';
+            const rawThyr = gv('GovernmentFunds') || gv('FUND_THYR') || gv('FUNDTHYR') || gv('fundthyr') || '0';
+            
+            const totFund = parseMoney(rawTot);
+            const fundThyr = parseMoney(rawThyr);
+
             if (totFund > 0 && hasPeriod) {
               annualBudget = totFund / projYrs;
               budgetSource = 'avg';
             } else if (totFund > 0 && !hasPeriod) {
-              annualBudget = totFund / 3;   // 기간 미상 → 3년 가정
+              annualBudget = totFund / 3;
               budgetSource = 'est';
             } else if (fundThyr > 0) {
               annualBudget = fundThyr;
               budgetSource = 'thyr';
             }
 
-            // 예산 미상 항목도 포함 (budgetSource='unknown'으로 표시, 비교 참고용)
             if (annualBudget <= 0) {
               annualBudget = 0;
               budgetSource = 'unknown';
             }
+
+            // [CRITICAL] 숫자형임을 보증
+            annualBudget = Number(annualBudget) || 0;
 
             allItems.push({ projNm, annualBudget, budgetSource, totFund, prdStart, prdEnd, projYrs, phase, biz, perfOrg, absContent, pjtId });
           }
@@ -3455,6 +3462,7 @@ Respond ONLY with:
         
         // [SAFETY] AI가 아무것도 선택하지 않았거나 형식이 틀린 경우 폴백
         if (result.length === 0) {
+          console.warn('[Budget AI] Empty selection, falling back');
           throw new Error('AI가 유효한 유사 과제를 선정하지 못했습니다.');
         }
 
@@ -3470,9 +3478,21 @@ Respond ONLY with:
 
     // ── Step 5: 최종 예산 산출 ───────────────────────────────────
     function calcBudgetRange(selectedItems) {
-      const budgets = selectedItems.map(i => i.annualBudget).sort((a, b) => a - b);
+      if (!selectedItems || !Array.isArray(selectedItems) || selectedItems.length === 0) {
+        console.error('[Budget Error] selectedItems empty');
+        return null;
+      }
+      
+      const budgets = selectedItems
+        .map(i => Number(i.annualBudget))
+        .filter(v => !isNaN(v) && v > 0)
+        .sort((a, b) => a - b);
+      
       const n = budgets.length;
-      if (n === 0) return null;
+      if (n === 0) {
+        console.error('[Budget Error] budgets empty after processing');
+        return null;
+      }
 
       // 중앙값
       const median = n % 2 === 0
