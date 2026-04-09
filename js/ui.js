@@ -3173,7 +3173,8 @@ Respond ONLY with:
     async function fetchNTISForBudget(keywords, durationYears, rndPhase, bizSect, displayCnt = 30) {
       if (!STATE.ntisKey) throw new Error('NTIS API 인증키가 필요합니다. API 설정에서 입력해주세요.');
 
-      const proxyBase = getProxyBase();
+      // ACTIVE_PROXY='direct'(프록시 미감지) 시에도 Vercel 프록시로 폴백 시도
+      const proxyBase = getProxyBase() || VERCEL_BASE;
       if (!proxyBase) throw new Error('프록시 서버가 연결되어 있지 않습니다. 로컬 프록시(node proxy-server.js)를 실행하거나 설정에서 프록시를 선택해주세요.');
 
       const allItems = [];
