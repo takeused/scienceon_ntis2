@@ -3131,12 +3131,17 @@ Respond ONLY with:
 
       const data = await resp.json();
       const raw = (data?.choices?.[0]?.message?.content || '').trim();
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (!match) return [projName];
-      const parsed = JSON.parse(match[0]);
-      return Array.isArray(parsed?.keywords) && parsed.keywords.length
-        ? parsed.keywords.slice(0, 3)
-        : [projName];
+      const match = raw.match(/\{[\s\S]*?\}/);
+      if (!match) return extractKeywordsManual(projName);
+      try {
+        const parsed = JSON.parse(match[0]);
+        return Array.isArray(parsed?.keywords) && parsed.keywords.length
+          ? parsed.keywords.slice(0, 3)
+          : extractKeywordsManual(projName);
+      } catch {
+        addBudgetLog('⚠️', 'AI 키워드 JSON 파싱 실패 → 수동 분절 검색으로 전환');
+        return extractKeywordsManual(projName);
+      }
     }
 
     // AI 미설정 시 수동 키워드 추출 (최대한 쪼개서 NTIS 검색 유도)
