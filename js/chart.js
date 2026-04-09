@@ -81,101 +81,85 @@
         return `${getApiBase()}?${params}`;
       };
 
-      const fetchPaperCount = async (year) => {
-        try {
-          const url = buildApiUrl('ARTI', {
-            searchQuery: JSON.stringify({ BI: query, PY: String(year) }),
-            curPage: 1, rowCount: 1,
-          });
-          const text = await (await fetch(url)).text();
-          const xml  = new DOMParser().parseFromString(text, 'text/xml');
-          return getTotalCount(xml);
-        } catch { return 0; }
+      const getYearFromRecord = (rec) => {
+        const tags = ['Pubyear', 'PublDate', 'ApplDate', 'GrantDate', 'RegisterDate'];
+        for (const t of tags) {
+          const items = Array.from(rec.getElementsByTagName('item'));
+          const byMeta = items.find(el => el.getAttribute('metaCode') === t);
+          if (byMeta && byMeta.textContent.trim()) return byMeta.textContent.trim().substring(0, 4);
+          
+          const byTag = rec.getElementsByTagName(t);
+          if (byTag.length > 0 && byTag[0].textContent.trim()) return byTag[0].textContent.trim().substring(0, 4);
+        }
+        return '';
       };
 
-      const fetchPatentYearDist = async () => {
+      const fetchYearDist = async (target, queryObjStr) => {
         const counts = Object.fromEntries(years.map(y => [y, 0]));
-        let patentQueryUsed = query;
         let total = 0;
         let fetched = 0;
         const PAGE = 100;
         const MAX_PAGES = 5;
 
-        // XML에서 특정 metaCode 값 읽기 (querySelector 대신 getElementsByTagName 사용 — XML 문서 호환성)
-        const readMetaCode = (rec, ...codes) => {
-          const items = Array.from(rec.getElementsByTagName('item'));
-          for (const code of codes) {
-            const el = items.find(el => el.getAttribute('metaCode') === code);
-            if (el && el.textContent.trim()) return el.textContent.trim();
-          }
-          return '';
-        };
-
         for (let page = 1; page <= MAX_PAGES; page++) {
           try {
-            const url = buildApiUrl('PATENT', {
-              searchQuery: JSON.stringify({ BI: patentQueryUsed }),
+            const url = buildApiUrl(target, {
+              searchQuery: queryObjStr,
               curPage: page, rowCount: PAGE,
             });
             const text = await (await fetch(url)).text();
             const xml  = new DOMParser().parseFromString(text, 'text/xml');
 
-            // 파서 에러 체크
             const parseErr = xml.getElementsByTagName('parsererror');
-            if (parseErr.length > 0) { console.error('[Patent] XML parse error', text.slice(0,200)); break; }
+            if (parseErr.length > 0) { console.error(`[${target}] XML parse error`, text.slice(0,200)); break; }
 
-            // API 에러 코드 체크
             const errEls = xml.getElementsByTagName('errorCode');
             if (errEls.length > 0 && errEls[0].textContent.trim()) {
-              console.warn('[Patent] API error:', errEls[0].textContent, text.slice(0,300));
+              console.warn(`[${target}] API error:`, errEls[0].textContent, text.slice(0,300));
               break;
             }
 
             if (page === 1) {
               total = getTotalCount(xml);
-              console.log('[Patent] TotalCount:', total, '| text length:', text.length);
+              console.log(`[${target}] TotalCount:`, total, '| text length:', text.length);
               if (total === 0) break;
             }
 
             const records = Array.from(xml.getElementsByTagName('record'));
-            console.log('[Patent] page', page, 'records:', records.length);
-            if (records.length === 0) {
-              console.warn('[Patent] records=0, text sample:', text.slice(0, 400));
-              break;
-            }
+            console.log(`[${target}] page`, page, 'records:', records.length);
+            if (records.length === 0) break;
 
             records.forEach(rec => {
-              // 출원일(ApplDate) 우선, 없으면 등록일(GrantDate), 공개일(PublDate)
-              const rawYear = readMetaCode(rec, 'ApplDate', 'GrantDate', 'PublDate', 'Pubyear');
-              const y = parseInt(rawYear.substring(0, 4));
-              if (y >= 2000 && counts[y] !== undefined) counts[y]++;
+              const rawYear = getYearFromRecord(rec);
+              const y = parseInt(rawYear);
+              if (!isNaN(y) && y >= 2000 && counts[y] !== undefined) counts[y]++;
             });
             fetched += records.length;
             if (fetched >= total) break;
           } catch (e) {
-            console.error('[Trend Patent] fetch error:', e);
+            console.error(`[Trend ${target}] fetch error:`, e);
             break;
           }
         }
         let scaled = years.map(y => counts[y]);
         if (fetched > 0 && total > fetched) {
           const ratio = total / fetched;
+          // 샘플링 비율만큼 곱하여 전체 추정치로 확대 (정수화)
           scaled = scaled.map(n => Math.round(n * ratio));
         }
-        return { patentCounts: scaled, patentQueryUsed, total };
+        return { counts: scaled, total };
       };
 
-      // 논문: 순차 요청 (병렬 시 rate-limit으로 대부분 실패)
-      const paperCounts = [];
-      for (const year of years) {
-        paperCounts.push(await fetchPaperCount(year));
-      }
-      const patentResult = await fetchPatentYearDist();
+      const [paperResult, patentResult] = await Promise.all([
+        fetchYearDist('ARTI', JSON.stringify({ BI: query })),
+        fetchYearDist('PATENT', JSON.stringify({ BI: query }))
+      ]);
 
       return {
-        years, paperCounts,
-        patentCounts: patentResult.patentCounts,
-        patentQueryUsed: patentResult.patentQueryUsed,
+        years, 
+        paperCounts: paperResult.counts,
+        patentCounts: patentResult.counts,
+        patentQueryUsed: query,
         patentTotal: patentResult.total,
       };
     }
