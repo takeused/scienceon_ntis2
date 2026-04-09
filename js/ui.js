@@ -3173,7 +3173,8 @@ Respond ONLY with:
         const params = new URLSearchParams({
           apprvKey: STATE.ntisKey,
           collection: 'project',
-          query: kw,
+          SRWR: kw,      // 최신 API 필수 파라미터 병행
+          query: kw,     // 하위 호환성용
           displayCnt: 30,
           startPosition: 1,
           searchRnkn: 'Y',
@@ -3214,29 +3215,48 @@ Respond ONLY with:
 
           for (let i = 0; i < items.length; i++) {
             const item = items[i];
-            // 계층형 태그 지원을 위한 헬퍼 (예: ProjectTitle > Korean)
+            // [PATCH] 대소문자 무시 검색 및 계층/평면 구조 동시 지원 유틸리티
             const gv = (tagName, subTagName) => {
-              const el = item.getElementsByTagName(tagName)[0];
+              const findElLower = (root, tag) => {
+                if (!root || !tag) return null;
+                const tagLower = tag.toLowerCase();
+                return Array.from(root.children).find(e => e.tagName.toLowerCase() === tagLower) || 
+                       root.getElementsByTagName(tag)[0] || 
+                       root.getElementsByTagName(tagLower)[0];
+              };
+              
+              let el = findElLower(item, tagName);
               if (!el) return '';
-              if (subTagName) return el.getElementsByTagName(subTagName)[0]?.textContent?.trim() || '';
+              
+              if (subTagName) {
+                const sub = findElLower(el, subTagName);
+                return sub?.textContent?.trim() || '';
+              }
               return el.textContent?.trim() || '';
             };
 
-            const pjtId = gv('ProjectNumber') || gv('PJTID') || gv('pjtId') || i;
+            const parseMoney = (s) => {
+              if (!s) return 0;
+              // 콤마, 공백 제거 및 숫자만 추출하여 parseFloat 처리
+              const cleaned = String(s).replace(/[^0-9.]/g, '');
+              return parseFloat(cleaned) || 0;
+            };
+
+            const pjtId = gv('ProjectNumber') || gv('PJT_ID') || gv('PJTID') || gv('pjtId') || i;
             if (pjtId && seenIds.has(pjtId)) continue;
             if (pjtId) seenIds.add(pjtId);
 
-            const projNm    = gv('ProjectTitle', 'Korean') || gv('PROJNM') || gv('projNm') || '';
+            const projNm    = gv('ProjectTitle', 'Korean') || gv('PROJ_NM') || gv('PROJNM') || gv('projNm') || gv('projnm') || '';
             
-            // NTIS API 연구비 파싱 (원 단위)
-            const totFund  = parseFloat(gv('TotalFunds') || gv('TOTFUND') || '0');
-            const fundThyr = parseFloat(gv('GovernmentFunds') || gv('FUNDTHYR') || '0');
+            // NTIS API 연구비 파싱 (다양한 필드 대응 및 콤마 제거)
+            const totFund   = parseMoney(gv('TotalFunds') || gv('TOT_FUND') || gv('TOTFUND') || gv('totfund') || '0');
+            const fundThyr  = parseMoney(gv('GovernmentFunds') || gv('FUND_THYR') || gv('FUNDTHYR') || gv('fundthyr') || '0');
 
-            // 실제 NTIS XML 구조: <ProjectPeriod><Start>YYYYMM</Start><End>YYYYMM</End></ProjectPeriod>
-            const prdStart  = (gv('ProjectPeriod', 'Start') || gv('ProjectStartYear') || gv('PRDSTART') || '').substring(0, 4);
-            const prdEnd    = (gv('ProjectPeriod', 'End')   || gv('ProjectEndYear')   || gv('PRDEND')   || '').substring(0, 4);
-            const phase     = gv('ResearchPhase') || gv('RNDPHASE') || '';
-            const biz       = gv('BusinessSector') || gv('BIZSECT') || '';
+            // NTIS XML: <ProjectPeriod><Start>YYYYMM</Start><End>YYYYMM</End></ProjectPeriod> 등 대응
+            const prdStart  = (gv('ProjectPeriod', 'Start') || gv('ProjectStartYear') || gv('PRD_START') || gv('PRDSTART') || '').substring(0, 4);
+            const prdEnd    = (gv('ProjectPeriod', 'End')   || gv('ProjectEndYear')   || gv('PRD_END')   || gv('PRDEND')   || '').substring(0, 4);
+            const phase     = gv('ResearchPhase') || gv('RND_PHASE') || gv('RNDPHASE') || '';
+            const biz       = gv('BusinessSector') || gv('BIZ_SECT') || gv('BIZSECT') || '';
             const perfOrg   = gv('ResearchAgency', 'Name') || gv('PerformingOrganization', 'Name') || gv('PERFORGNM') || '';
             const absContent= gv('Abstract') || gv('ABSTRACTCONTENT') || '';
 
@@ -3388,7 +3408,9 @@ Respond ONLY with:
         const selected = (parsed?.selected || []).slice(0, 7);
         const result = selected
           .map(s => {
-            const item = items[s.index];
+            const idx = parseInt(s.index);
+            if (isNaN(idx)) return null;
+            const item = items[idx];
             if (!item) return null;
             item.similarity = s.similarity || 80;
             item.aiReason = s.reason || 'AI 분석';
