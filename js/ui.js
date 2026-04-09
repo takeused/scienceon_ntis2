@@ -3315,12 +3315,6 @@ Respond ONLY with:
             let annualBudget = 0;
             let budgetSource = '';
             
-            // NTIS 예산 데이터 추출 보강
-            const rawTot = gv('TotalFunds') || gv('TOT_FUND') || gv('TOTFUND') || gv('totfund') || '0';
-            const rawThyr = gv('GovernmentFunds') || gv('FUND_THYR') || gv('FUNDTHYR') || gv('fundthyr') || '0';
-            
-            const totFund = parseMoney(rawTot);
-            const fundThyr = parseMoney(rawThyr);
 
             if (totFund > 0 && hasPeriod) {
               annualBudget = totFund / projYrs;
