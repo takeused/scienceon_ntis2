@@ -3279,24 +3279,28 @@ Respond ONLY with:
             if (pjtId && seenIds.has(pjtId)) continue;
             if (pjtId) seenIds.add(pjtId);
 
-            const projNm    = gv('ProjectTitle', 'Korean') || gv('PROJ_NM') || gv('PROJNM') || gv('projNm') || gv('projnm') || '';
+            const projNm    = gv('ProjectTitle', 'Korean') || gv('ProjectTitle') || '';
+            const absContent= gv('Abstract', 'Full') || gv('Abstract') || gv('Goal', 'Full') || '';
             
-            // NTIS API 연구비 파싱 (다양한 필드 대응 및 콤마 제거)
-            const totFund   = parseMoney(gv('TotalFunds') || gv('TOT_FUND') || gv('TOTFUND') || gv('totfund') || '0');
-            const fundThyr  = parseMoney(gv('GovernmentFunds') || gv('FUND_THYR') || gv('FUNDTHYR') || gv('fundthyr') || '0');
+            // NTIS API 연구비 파싱 (실제 XML 태그 확인된 필드)
+            const totFund   = parseMoney(gv('TotalFunds') || '0');
+            const fundGov   = parseMoney(gv('GovernmentFunds') || '0');
 
-            // NTIS XML: <ProjectPeriod><Start>YYYYMM</Start><End>YYYYMM</End></ProjectPeriod> 등 대응
-            const prdStart  = (gv('ProjectPeriod', 'Start') || gv('ProjectStartYear') || gv('PRD_START') || gv('PRDSTART') || '').substring(0, 4);
-            const prdEnd    = (gv('ProjectPeriod', 'End')   || gv('ProjectEndYear')   || gv('PRD_END')   || gv('PRDEND')   || '').substring(0, 4);
-            const phase     = gv('ResearchPhase') || gv('RND_PHASE') || gv('RNDPHASE') || '';
-            const biz       = gv('BusinessSector') || gv('BIZ_SECT') || gv('BIZSECT') || '';
-            const perfOrg   = gv('ResearchAgency', 'Name') || gv('PerformingOrganization', 'Name') || gv('PERFORGNM') || '';
-            const absContent= gv('Abstract') || gv('ABSTRACTCONTENT') || '';
+            // ProjectPeriod: <Start>20240601</Start> (YYYYMMDD 8자)
+            const prdStartRaw = gv('ProjectPeriod', 'Start') || gv('ProjectPeriod', 'TotalStart') || '';
+            const prdEndRaw   = gv('ProjectPeriod', 'End')   || gv('ProjectPeriod', 'TotalEnd')   || '';
+            const prdStart    = prdStartRaw.substring(0, 4);
+            const prdEnd      = prdEndRaw.substring(0, 4);
 
-            // [Step 2] 정책 메타데이터 필터링
+            // 연구개발단계: <DevelopmentPhases>개발연구</DevelopmentPhases>
+            const phase     = gv('DevelopmentPhases') || gv('ResearchPhase') || gv('RND_PHASE') || '';
+            const biz       = gv('BusinessName') || gv('BusinessSector') || gv('BIZ_SECT') || '';
+            const perfOrg   = gv('ResearchAgency', 'Name') || gv('LeadAgency') || '';
+
+            // [Step 2] 연도 필터 (너무 오래된 과제 제외, 거스 연도 없으면 통과)
             const startYr = parseInt(prdStart);
             const curYr   = new Date().getFullYear();
-            if (prdStart && startYr < curYr - 10) continue;
+            if (prdStart && !isNaN(startYr) && startYr < curYr - 15) continue; // 15년 이내로 완화
 
             // 수행연수 계산 (기간 정보 있는 경우에만)
             const hasPeriod = prdStart && prdEnd && !isNaN(parseInt(prdStart)) && !isNaN(parseInt(prdEnd));
@@ -3315,26 +3319,20 @@ Respond ONLY with:
             let annualBudget = 0;
             let budgetSource = '';
             
-
             if (totFund > 0 && hasPeriod) {
               annualBudget = totFund / projYrs;
               budgetSource = 'avg';
-            } else if (totFund > 0 && !hasPeriod) {
-              annualBudget = totFund / 3;
+            } else if (totFund > 0) {
+              // 기간 없거나 1년 이하 단기 과제 처리: totFund 그대로 연간으로 간주
+              annualBudget = totFund;
               budgetSource = 'est';
-            } else if (fundThyr > 0) {
-              annualBudget = fundThyr;
-              budgetSource = 'thyr';
+            } else if (fundGov > 0) {
+              annualBudget = fundGov;
+              budgetSource = 'gov';
             }
 
-            if (annualBudget <= 0) {
-              annualBudget = 0;
-              budgetSource = 'unknown';
-            }
-
-            // [CRITICAL] 숫자형임을 보증
             annualBudget = Number(annualBudget) || 0;
-
+            
             allItems.push({ projNm, annualBudget, budgetSource, totFund, prdStart, prdEnd, projYrs, phase, biz, perfOrg, absContent, pjtId });
           }
         } catch (e) {
@@ -3477,10 +3475,32 @@ Respond ONLY with:
         return null;
       }
       
-      const budgets = selectedItems
+      // budget > 0인 항목으로 침, 몟으면 전체 항목 사position
+      let budgets = selectedItems
         .map(i => Number(i.annualBudget))
         .filter(v => !isNaN(v) && v > 0)
         .sort((a, b) => a - b);
+      
+      // budget > 0인 항목이 없지만 selectedItems가 있다면 전체 budget으로 대체 (수집은 되었는데 budget이 0인 경우)
+      if (budgets.length === 0 && selectedItems.length > 0) {
+        // 연구비 데이터가 없는 경우 평균적 추정값 3억 사용
+        console.warn('[Budget] No budget data found in selected items, using estimation');
+        return {
+          median: 300000000,
+          weightedAvg: null,
+          q1: 200000000,
+          q3: 400000000,
+          avg: 300000000,
+          sd: 100000000,
+          cv: 33,
+          avgSimilarity: null,
+          confidence: 'C',
+          min: 200000000,
+          max: 400000000,
+          n: selectedItems.length,
+          isEstimated: true,
+        };
+      }
       
       const n = budgets.length;
       if (n === 0) {
