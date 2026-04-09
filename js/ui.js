@@ -3183,9 +3183,28 @@ Respond ONLY with:
 
         // addQuery는 사용하지 않음 — 형식 오류 시 API 0건 원인이 되므로 클라이언트 필터로만 처리
 
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        let tries = 0;
+        let resp;
+        
+        while (tries < 3) {
+          try {
+            resp = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
+            if (resp.status === 429) {
+              addBudgetLog('⏳', `API 부하(429) 발생 → 재시도 준비 (${tries + 1}/3)`);
+              await sleep(600 + Math.random() * 400);
+              tries++;
+              continue;
+            }
+            break;
+          } catch (e) {
+            tries++;
+            await sleep(500);
+          }
+        }
+
         try {
-          const resp = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
-          if (!resp.ok) continue;
+          if (!resp || !resp.ok) continue;
           const text = await resp.text();
           const xml = new DOMParser().parseFromString(text, 'text/xml');
 
@@ -3200,8 +3219,15 @@ Respond ONLY with:
             const noSpaceKw = kw.replace(/\s+/g, '');
             addBudgetLog('🔍', `결과 0건 → 띄어쓰기 제거 재검색: "${noSpaceKw}"`);
             params.set('query', noSpaceKw);
-            const resp2 = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
-            if (resp2.ok) {
+            params.set('SRWR', noSpaceKw);
+            
+            let resp2 = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
+            if (resp2.status === 429) {
+              await sleep(800);
+              resp2 = await fetch(`${getProxyBase()}/ntis?${params.toString()}`);
+            }
+
+            if (resp2 && resp2.ok) {
               const text2 = await resp2.text();
               const xml2 = new DOMParser().parseFromString(text2, 'text/xml');
               items = Array.from(xml2.getElementsByTagName('HIT'));
@@ -3210,6 +3236,9 @@ Respond ONLY with:
               if (items.length === 0) items = Array.from(xml2.getElementsByTagName('record'));
             }
           }
+          
+          // 수집 전 약간의 지연 (연속 호출 방지)
+          await sleep(150);
 
           addBudgetLog('📦', `"${kw}" → ${items.length}건 수집`);
 
@@ -3405,9 +3434,8 @@ Respond ONLY with:
         if (!match) throw new Error('AI 응답 파싱 실패');
         const parsed = JSON.parse(match[0]);
 
-        const selected = (parsed?.selected || []).slice(0, 7);
-        const result = selected
-        const result = (parsed?.selected || [])
+        const rawResult = (parsed?.selected || []);
+        const result = rawResult
           .map(s => {
             const idx = parseInt(s.index);
             if (isNaN(idx)) return null;
