@@ -3407,18 +3407,26 @@ Respond ONLY with:
 
         const selected = (parsed?.selected || []).slice(0, 7);
         const result = selected
+        const result = (parsed?.selected || [])
           .map(s => {
             const idx = parseInt(s.index);
             if (isNaN(idx)) return null;
             const item = items[idx];
             if (!item) return null;
-            item.similarity = s.similarity || 80;
-            item.aiReason = s.reason || 'AI 분석';
-            return item;
+            // 복사본을 만들어 원본 items 배열의 무결성 유지 (부수효과 방지)
+            const newItem = { ...item };
+            newItem.similarity = parseInt(s.similarity) || 80;
+            newItem.aiReason = s.reason || 'AI 분석 기반 선정';
+            return newItem;
           })
           .filter(Boolean);
+        
+        // [SAFETY] AI가 아무것도 선택하지 않았거나 형식이 틀린 경우 폴백
+        if (result.length === 0) {
+          throw new Error('AI가 유효한 유사 과제를 선정하지 못했습니다.');
+        }
 
-        addBudgetLog('✅', `AI 유사과제 ${result.length}건 선정`);
+        addBudgetLog('✅', `AI 유사과제 ${result.length}건 선정 완료`);
         return result;
       } catch (err) {
         addBudgetLog('⚠️', `AI 평가 오류 (${err.message}) → 통계 기반으로 대체`);
@@ -3470,7 +3478,20 @@ Respond ONLY with:
       if (n < 5 || cv >= 80) confidence = 'C';
       else if (n < 10 || cv >= 50) confidence = 'B';
 
-      return { median, weightedAvg, q1, q3, avg, sd, cv, avgSimilarity, confidence, min: budgets[0], max: budgets[n-1], n };
+      return { 
+        median: median || avg || 0, // 중앙값이 0일 경우 평균이라도 사용
+        weightedAvg, 
+        q1, 
+        q3, 
+        avg, 
+        sd, 
+        cv, 
+        avgSimilarity, 
+        confidence, 
+        min: budgets[0] || 0, 
+        max: budgets[n-1] || 0, 
+        n 
+      };
     }
 
     // ── 결과 대시보드 렌더링 ─────────────────────────────────────
