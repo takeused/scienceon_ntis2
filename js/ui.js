@@ -3272,6 +3272,15 @@ Respond ONLY with:
           // 수집 전 약간의 지연 (연속 호출 방지)
           await sleep(150);
 
+          // 아이템이 0건인 경우 진단용 RAW 응답 출력
+          if (items.length === 0) {
+            const rootTag = xml.documentElement?.tagName || '(없음)';
+            const totalHits = xml.getElementsByTagName('TOTALHITS')[0]?.textContent?.trim()
+                           || xml.getElementsByTagName('totalCount')[0]?.textContent?.trim() || '?';
+            addBudgetLog('⚠️', `"${kw}" 0건 — XML 루트: <${rootTag}>, TOTALHITS: ${totalHits}`);
+            addBudgetLog('🔍', `RAW: ${text.substring(0, 500)}`);
+          }
+
           addBudgetLog('📦', `"${kw}" → ${items.length}건 수집`);
 
           for (let i = 0; i < items.length; i++) {
