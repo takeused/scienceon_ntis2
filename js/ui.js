@@ -3013,11 +3013,14 @@ Respond ONLY with this JSON structure:
 
     // ── 유틸: 연구비 포맷 (억 / 백만 원) ───────────────────────────
     function fmtBudget(won) {
-      if (!won || isNaN(won) || won <= 0) return '-';
-      if (won >= 100000000) return (won / 100000000).toFixed(1) + '억 원';
-      if (won >= 10000000)  return (won / 10000000).toFixed(1)  + '천만 원';
-      if (won >= 1000000)   return (won / 1000000).toFixed(0)   + '백만 원';
-      return won.toLocaleString() + ' 원';
+      if (won === null || won === undefined || isNaN(won) || won < 0) return '-';
+      if (won === 0) return '0원';
+      const num = Number(won);
+      if (num >= 100000000) return (num / 100000000).toFixed(1) + '억 원';
+      if (num >= 10000000)  return (num / 10000000).toFixed(1)  + '천만 원';
+      if (num >= 1000000)   return (num / 1000000).toFixed(0)   + '백만 원';
+      if (num >= 1000)      return (num / 1000).toLocaleString() + '천 원';
+      return Math.round(num).toLocaleString() + ' 원';
     }
 
     // ── 유틸: 로그 추가 ──────────────────────────────────────────
@@ -3268,7 +3271,8 @@ Respond ONLY with:
               if (!s) return 0;
               // 콤마, 공백 제거 및 숫자만 추출하여 parseFloat 처리
               const cleaned = String(s).replace(/[^0-9.]/g, '');
-              return parseFloat(cleaned) || 0;
+              const val = parseFloat(cleaned);
+              return isNaN(val) ? 0 : val;
             };
 
             const pjtId = gv('ProjectNumber') || gv('PJT_ID') || gv('PJTID') || gv('pjtId') || i;
@@ -3490,7 +3494,8 @@ Respond ONLY with:
       const q3 = budgets[Math.floor(n * 0.75)];
 
       // 산술 평균 + 표준편차
-      const avg = budgets.reduce((s, v) => s + v, 0) / n;
+      const sum = budgets.reduce((s, v) => s + (Number(v) || 0), 0);
+      const avg = sum / n;
       const sd  = Math.sqrt(budgets.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / n);
 
       // 변동계수(CV): 분포 신뢰도 판단 지표 (50% 초과 시 편차 큼)
@@ -3962,6 +3967,7 @@ ${'='.repeat(64)}
         addBudgetLog('💰', 'Step 5: 중앙값·가중평균·범위 산출...');
         const budgetRange = calcBudgetRange(selectedItems);
 
+        console.log('[Budget Final] Range:', budgetRange);
         addBudgetLog('🎉', `분석 완료! 적정 연간 연구비 중앙값: ${fmtBudget(budgetRange?.median)}`);
 
         renderBudgetDashboard(projName, durationYears, selectedItems, budgetRange);
