@@ -3426,21 +3426,35 @@ Respond ONLY with:
 
     // ── Step 3: 연간 정규화 + IQR 이상치 제거 ────────────────────
     function normalizeAndClean(items) {
-      if (items.length < 3) return items;
+      // annualBudget > 0 항목만으로 IQR 계산 (0-budget 항목이 Q1을 0으로 끌어내리는 왜곡 방지)
+      const budgetItems = items.filter(i => i.annualBudget > 0);
+      const zeroBudget  = items.filter(i => i.annualBudget === 0);
 
-      const budgets = items.map(i => i.annualBudget).sort((a, b) => a - b);
+      if (budgetItems.length < 3) {
+        // budget 확인 항목이 3건 미만이면 IQR 의미 없음 → 전체 반환
+        addBudgetLog('📊', `IQR 생략 (연구비 확인 과제 ${budgetItems.length}건 미만) → ${items.length}건 전체 사용`);
+        return items;
+      }
+
+      const budgets = budgetItems.map(i => i.annualBudget).sort((a, b) => a - b);
       const n = budgets.length;
       const q1 = budgets[Math.floor(n * 0.25)];
       const q3 = budgets[Math.floor(n * 0.75)];
       const iqr = q3 - q1;
 
       let multiplier = 1.5;
-      let cleaned = items.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
+      let cleaned = budgetItems.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
 
       // 3건 미만 → IQR 배수 2.0으로 완화
       if (cleaned.length < 3) {
         multiplier = 2.0;
-        cleaned = items.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
+        cleaned = budgetItems.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
+      }
+
+      // budget 유효 과제가 부족하면 budget=0 과제로 보충 (최대 5건)
+      if (cleaned.length < 5 && zeroBudget.length > 0) {
+        const supplement = zeroBudget.slice(0, 5 - cleaned.length);
+        cleaned = [...cleaned, ...supplement];
       }
 
       const removed = items.length - cleaned.length;
@@ -3513,9 +3527,28 @@ Respond ONLY with:
 
         const data = await resp.json();
         const raw = (data?.choices?.[0]?.message?.content || '').trim();
-        const match = raw.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error('AI 응답 파싱 실패');
-        const parsed = JSON.parse(match[0]);
+
+        // 2단계 JSON 파싱: Korean reason 필드의 특수문자로 인한 SyntaxError 대응
+        let parsed;
+        try {
+          // 1차: "selected" 키를 포함한 JSON 블록 추출
+          const match = raw.match(/\{[\s\S]*"selected"[\s\S]*\}/);
+          if (!match) throw new Error('selected 키 없음');
+          parsed = JSON.parse(match[0]);
+        } catch {
+          // 2차: index/similarity 값만 정규식으로 직접 추출 (reason 파싱 포기)
+          const idxMatches = [...raw.matchAll(/"index"\s*:\s*(\d+)/g)];
+          const simMatches = [...raw.matchAll(/"similarity"\s*:\s*(\d+)/g)];
+          parsed = {
+            selected: idxMatches.map((m, i) => ({
+              index: parseInt(m[1]),
+              similarity: parseInt(simMatches[i]?.[1]) || 80,
+              reason: 'AI 분석 기반 (reason 파싱 실패)',
+            })),
+          };
+          if (parsed.selected.length === 0) throw new Error('AI 응답에서 index 추출 실패');
+          addBudgetLog('⚠️', `JSON 1차 파싱 실패 → index/similarity 직접 추출 (${parsed.selected.length}건)`);
+        }
 
         const rawResult = (parsed?.selected || []);
         const result = rawResult
@@ -3542,7 +3575,10 @@ Respond ONLY with:
         return result;
       } catch (err) {
         addBudgetLog('⚠️', `AI 평가 오류 (${err.message}) → 통계 기반으로 대체`);
-        const topN = items.slice(0, 7);
+        // budget > 0 항목 우선 선택 (API 응답 순서 의존 방지)
+        const withBudget    = items.filter(i => i.annualBudget > 0);
+        const withoutBudget = items.filter(i => i.annualBudget === 0);
+        const topN = [...withBudget, ...withoutBudget].slice(0, 7);
         topN.forEach((item, i) => { item.similarity = Math.round(90 - i * 5); item.aiReason = '통계 기반 선정'; });
         return topN;
       }
@@ -3643,10 +3679,8 @@ Respond ONLY with:
 
     // ── 결과 대시보드 렌더링 ─────────────────────────────────────
     function renderBudgetDashboard(projName, durationYears, selectedItems, budgetRange) {
-      if (!budgetRange) {
-        showToast('유사 과제를 찾지 못했습니다. 검색어나 필터 조건을 조정해보세요.', 'warning');
-        return;
-      }
+      // null 체크 — runBudgetEstimation에서 이미 처리되므로 여기서는 조용히 리턴
+      if (!budgetRange) return;
 
       const dYrs = parseInt(durationYears) || 1;
       const totalMedian = budgetRange.median * dYrs;
@@ -4071,20 +4105,41 @@ ${'='.repeat(64)}
         addBudgetLog('📊', 'Step 3: 연간 정규화 + IQR 이상치 제거...');
         const cleanedItems = normalizeAndClean(rawItems);
 
-        // ── Step 4: AI 유사도 평가 ──────────────────────────────
+        // Guard: IQR 후 0건이면 rawItems로 폴백
+        const effectiveItems = cleanedItems.length > 0 ? cleanedItems : rawItems;
+        if (cleanedItems.length === 0) {
+          addBudgetLog('⚠️', 'IQR 이상치 제거 후 0건 → 원본 데이터로 폴백');
+        }
+
+        // ── Step 4: AI 유사도 평가 ──────────────────────────────────────────
         setBudgetStep(4);
         addBudgetLog('🔬', 'Step 4: AI 4차원 유사도 평가 시작...');
-        const selectedItems = await aiSimilarityEval(projName, aiSynopsis, cleanedItems);
+        const selectedItems = await aiSimilarityEval(projName, aiSynopsis, effectiveItems);
 
-        // ── Step 5: 최종 예산 산출 ──────────────────────────────
+        // Guard: AI/통계 선정 후에도 0건이면 직접 상위 7건 선택
+        const finalItems = selectedItems.length > 0
+          ? selectedItems
+          : effectiveItems.filter(i => i.annualBudget > 0).slice(0, 7);
+        if (selectedItems.length === 0) {
+          addBudgetLog('⚠️', 'AI/통계 선정 실패 → budget > 0 항목 상위 7건 직접 사용');
+          finalItems.forEach(item => { item.similarity = null; item.aiReason = '직접 선정 (폴백)'; });
+        }
+
+        // ── Step 5: 최종 예산 산출 ───────────────────────────────────────────────
         setBudgetStep(5);
         addBudgetLog('💰', 'Step 5: 중앙값·가중평균·범위 산출...');
-        const budgetRange = calcBudgetRange(selectedItems);
+        const budgetRange = calcBudgetRange(finalItems);
 
         console.log('[Budget Final] Range:', budgetRange);
-        addBudgetLog('🎉', `분석 완료! 적정 연간 연구비 중앙값: ${fmtBudget(budgetRange?.median)}`);
 
-        renderBudgetDashboard(projName, durationYears, selectedItems, budgetRange);
+        if (!budgetRange) {
+          addBudgetLog('❌', '예산 산출 실패 — 수집된 과제의 연구비 데이터가 없거나 부족합니다');
+          showToast('유사 과제를 찾지 못했습니다. 검색어나 필터 조건을 조정해보세요.', 'warning');
+          return;
+        }
+
+        addBudgetLog('🎉', `분석 완료! 적정 연간 연구비 중앙값: ${fmtBudget(budgetRange.median)}`);
+        renderBudgetDashboard(projName, durationYears, finalItems, budgetRange);
 
       } catch (err) {
         console.error('[Budget]', err);
