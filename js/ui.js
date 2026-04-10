@@ -485,11 +485,26 @@
     // 탭별 건수 병렬 조회 후 탭 버튼에 표시
     async function fetchTabCounts(query, searchField = 'BI') {
       const TARGETS = ['ARTI','PATENT','REPORT','ATT','RESEARCHER','ORGAN','TREND'];
-      const searchQuery = JSON.stringify({ [searchField]: query });
+
+      // 타겟별 지원 searchField — 미지원 필드 사용 시 E4007 오류로 0건 반환되는 버그 방지
+      const VALID_FIELDS = {
+        ARTI:       ['BI','TI','AU','AB','KW','PB','PY'],
+        PATENT:     ['BI','TI','AB','PA','IN','IC','AN','RN','AD'],
+        REPORT:     ['BI','TI','AU','AB','KW','PB','PY'],
+        ATT:        ['BI','TI','AU','AB','KW','PB','PY'],
+        RESEARCHER: ['BI','TI'],
+        ORGAN:      ['BI','TI'],
+        TREND:      ['BI','TI','KW'],
+      };
+
       const base = getApiBase();
 
       const counts = await Promise.all(TARGETS.map(async target => {
         try {
+          // 타겟이 지원하지 않는 searchField는 'BI'(전체)로 폴백
+          const effectiveField = (VALID_FIELDS[target] || ['BI']).includes(searchField) ? searchField : 'BI';
+          const searchQuery = JSON.stringify({ [effectiveField]: query });
+
           const params = new URLSearchParams({
             client_id: STATE.clientId, token: STATE.token,
             version: '1.0', action: 'search', target,
@@ -498,9 +513,36 @@
           const resp = await fetch(`${base}?${params}`);
           const text = await resp.text();
           const xml = new DOMParser().parseFromString(text, 'text/xml');
-          const el = xml.querySelector('TotalCount') || xml.querySelector('totalCount');
-          return parseInt(el?.textContent) || 0;
-        } catch { return null; }
+
+          // API 오류 응답 체크 (statusCode가 200이 아니면 null 반환 → 탭 레이블 유지)
+          const statusCode = xml.querySelector('statusCode')?.textContent?.trim();
+          if (statusCode && statusCode !== '200') {
+            const errCode = xml.querySelector('errorCode')?.textContent?.trim() || '';
+            console.warn(`[tabCount] ${target}: API 오류 — statusCode=${statusCode} errorCode=${errCode}`);
+            return null;
+          }
+
+          // TotalCount 태그명은 타겟마다 다를 수 있으므로 다양한 케이스 시도
+          const findCount = (xml) => {
+            const names = ['TotalCount','totalCount','TOTALCOUNT','total_count','TOTALHITS','resultCount','ResultCount'];
+            for (const name of names) {
+              const el = xml.getElementsByTagName(name)[0];
+              if (el) return parseInt(el.textContent) || 0;
+            }
+            return 0;
+          };
+
+          const count = findCount(xml);
+          if (count === 0) {
+            const rootTag = xml.documentElement?.tagName || 'unknown';
+            const firstChild = xml.documentElement?.children[0]?.tagName || 'none';
+            console.log(`[tabCount] ${target}: 0건 — root=<${rootTag}> firstChild=<${firstChild}> field=${effectiveField}`);
+          }
+          return count;
+        } catch (e) {
+          console.error(`[tabCount] ${target}: 예외`, e);
+          return null;
+        }
       }));
 
       // 탭 버튼에 건수 표시
