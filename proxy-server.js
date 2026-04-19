@@ -196,7 +196,8 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`\n✅ ScienceON 로컬 프록시 서버 시작`);
   console.log(`   포트: http://127.0.0.1:${PORT}`);
   console.log(`   /health  /token  /api  /ntis  /ntis/connection`);
-  console.log(`\n   브라우저에서 페이지를 새로고침하면 자동으로 로컬 프록시를 사용합니다.\n`);
+  console.log(`\n   🔔 NTIS 승인 IP: 1.252.84.41 (정박사님 PC)`);
+  console.log(`   브라우저에서 페이지를 새로고침하면 자동으로 로컬 프록시를 사용합니다.\n`);
 });
 
 server.on('error', (err) => {
