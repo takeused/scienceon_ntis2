@@ -3571,6 +3571,20 @@ Respond ONLY with:
           throw new Error('AI가 유효한 유사 과제를 선정하지 못했습니다.');
         }
 
+        // AI 선정 건수가 3건 미만이면 budget>0 항목으로 보충
+        if (result.length < 3) {
+          const selectedPjtIds = new Set(result.map(i => i.pjtId).filter(Boolean));
+          const supplement = items
+            .filter(i => i.annualBudget > 0 && !selectedPjtIds.has(i.pjtId))
+            .slice(0, 3 - result.length)
+            .map(item => ({ ...item, similarity: null, aiReason: '통계 기반 보충 선정' }));
+          if (supplement.length > 0) {
+            const aiCount = result.length;
+            result.push(...supplement);
+            addBudgetLog('📌', `AI 선정 ${aiCount}건 + 통계 보충 ${supplement.length}건 = 총 ${result.length}건`);
+          }
+        }
+
         addBudgetLog('✅', `AI 유사과제 ${result.length}건 선정 완료`);
         return result;
       } catch (err) {
@@ -3586,6 +3600,7 @@ Respond ONLY with:
 
     // ── Step 5: 최종 예산 산출 ───────────────────────────────────
     function calcBudgetRange(selectedItems) {
+      console.log('[calcBudgetRange] input length:', selectedItems?.length, '| budgets:', selectedItems?.map(i => i.annualBudget));
       if (!selectedItems || !Array.isArray(selectedItems) || selectedItems.length === 0) {
         console.error('[Budget Error] selectedItems empty');
         return null;
@@ -4128,7 +4143,15 @@ ${'='.repeat(64)}
         // ── Step 5: 최종 예산 산출 ───────────────────────────────────────────────
         setBudgetStep(5);
         addBudgetLog('💰', 'Step 5: 중앙값·가중평균·범위 산출...');
-        const budgetRange = calcBudgetRange(finalItems);
+        let budgetRange = calcBudgetRange(finalItems);
+
+        // finalItems budget 데이터 없음 → effectiveItems에서 직접 재시도
+        if (!budgetRange && effectiveItems.length > 0) {
+          addBudgetLog('⚠️', 'finalItems 산출 실패 → effectiveItems 직접 사용 (폴백)');
+          const fallbackItems = effectiveItems.filter(i => i.annualBudget > 0).slice(0, 7);
+          fallbackItems.forEach(item => { item.similarity = null; item.aiReason = '직접 선정 (폴백)'; });
+          if (fallbackItems.length > 0) budgetRange = calcBudgetRange(fallbackItems);
+        }
 
         console.log('[Budget Final] Range:', budgetRange);
 
