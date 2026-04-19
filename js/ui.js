@@ -3600,9 +3600,10 @@ Respond ONLY with:
 
     // ── Step 5: 최종 예산 산출 ───────────────────────────────────
     function calcBudgetRange(selectedItems) {
-      console.log('[calcBudgetRange] input length:', selectedItems?.length, '| budgets:', selectedItems?.map(i => i.annualBudget));
+      const _budgetVals = selectedItems?.map(i => i.annualBudget) || [];
+      addBudgetLog('🔎', `calcBudgetRange 진입: ${selectedItems?.length ?? 'undefined'}건 | budgets=[${_budgetVals.join(', ')}]`);
       if (!selectedItems || !Array.isArray(selectedItems) || selectedItems.length === 0) {
-        console.error('[Budget Error] selectedItems empty');
+        addBudgetLog('🔴', 'selectedItems 비어있음 → null 반환');
         return null;
       }
       
@@ -3614,8 +3615,8 @@ Respond ONLY with:
       
       // budget > 0인 항목이 없지만 selectedItems가 있다면 전체 budget으로 대체 (수집은 되었는데 budget이 0인 경우)
       if (budgets.length === 0 && selectedItems.length > 0) {
+        addBudgetLog('🟡', `budget>0 항목 없음 → 3억 추정값 사용 (n=${selectedItems.length})`);
         // 연구비 데이터가 없는 경우 평균적 추정값 3억 사용
-        console.warn('[Budget] No budget data found in selected items, using estimation');
         return {
           median: 300000000,
           weightedAvg: null,
