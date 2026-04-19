@@ -355,7 +355,7 @@
       });
     }
 
-    function calcBudgetRange(items) {
+    function calcChartBudgetRange(items) {
       if (!items || items.length === 0) return null;
       const budgets = items.map(t => parseInt(t.budget) || 0).filter(b => b > 0).sort((a,b)=>a-b);
       if (budgets.length === 0) return null;

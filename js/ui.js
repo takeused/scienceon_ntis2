@@ -3600,10 +3600,8 @@ Respond ONLY with:
 
     // ── Step 5: 최종 예산 산출 ───────────────────────────────────
     function calcBudgetRange(selectedItems) {
-      const _budgetVals = selectedItems?.map(i => i.annualBudget) || [];
-      addBudgetLog('🔎', `calcBudgetRange 진입: ${selectedItems?.length ?? 'undefined'}건 | budgets=[${_budgetVals.join(', ')}]`);
       if (!selectedItems || !Array.isArray(selectedItems) || selectedItems.length === 0) {
-        addBudgetLog('🔴', 'selectedItems 비어있음 → null 반환');
+        console.error('[Budget Error] selectedItems empty');
         return null;
       }
       
@@ -3615,7 +3613,6 @@ Respond ONLY with:
       
       // budget > 0인 항목이 없지만 selectedItems가 있다면 전체 budget으로 대체 (수집은 되었는데 budget이 0인 경우)
       if (budgets.length === 0 && selectedItems.length > 0) {
-        addBudgetLog('🟡', `budget>0 항목 없음 → 3억 추정값 사용 (n=${selectedItems.length})`);
         // 연구비 데이터가 없는 경우 평균적 추정값 3억 사용
         return {
           median: 300000000,
@@ -4144,14 +4141,12 @@ ${'='.repeat(64)}
         // ── Step 5: 최종 예산 산출 ───────────────────────────────────────────────
         setBudgetStep(5);
         addBudgetLog('💰', 'Step 5: 중앙값·가중평균·범위 산출...');
-        addBudgetLog('🔎', `[D] finalItems=${finalItems?.length}건 | budgets=[${finalItems?.map(i=>i.annualBudget).join(',')}]`);
         let budgetRange = calcBudgetRange(finalItems);
 
         // finalItems budget 데이터 없음 → effectiveItems에서 직접 재시도
         if (!budgetRange && effectiveItems.length > 0) {
           addBudgetLog('⚠️', 'finalItems 산출 실패 → effectiveItems 직접 사용 (폴백)');
           const fallbackItems = effectiveItems.filter(i => i.annualBudget > 0).slice(0, 7);
-          addBudgetLog('🔎', `[D] fallback=${fallbackItems.length}건 | effectiveItems=${effectiveItems.length}건`);
           fallbackItems.forEach(item => { item.similarity = null; item.aiReason = '직접 선정 (폴백)'; });
           if (fallbackItems.length > 0) budgetRange = calcBudgetRange(fallbackItems);
         }
