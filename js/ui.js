@@ -3442,12 +3442,12 @@ Respond ONLY with:
       const q3 = budgets[Math.floor(n * 0.75)];
       const iqr = q3 - q1;
 
-      let multiplier = 1.5;
+      let multiplier = 3.0;
       let cleaned = budgetItems.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
 
-      // 3건 미만 → IQR 배수 2.0으로 완화
+      // 3건 미만 → IQR 배수 4.0으로 추가 완화
       if (cleaned.length < 3) {
-        multiplier = 2.0;
+        multiplier = 4.0;
         cleaned = budgetItems.filter(i => i.annualBudget >= q1 - multiplier * iqr && i.annualBudget <= q3 + multiplier * iqr);
       }
 
@@ -3637,10 +3637,15 @@ Respond ONLY with:
         return null;
       }
 
-      // 중앙값
-      const median = n % 2 === 0
+      // 중앙값 및 사분위
+      const rawMedian = n % 2 === 0
         ? (budgets[n/2 - 1] + budgets[n/2]) / 2
         : budgets[Math.floor(n/2)];
+      const q1 = budgets[Math.floor(n * 0.25)];
+      const q3 = budgets[Math.floor(n * 0.75)];
+
+      // 기준값: (중앙값 + Q3) / 2 → 중상위 추정 (충분한 편의를 가진 적정 예산)
+      const median = Math.round((rawMedian + q3) / 2);
 
       // AI 유사도 가중 평균: similarity가 실제 AI 평가값(null이 아닌)인 항목만 반영
       // null(AI 미평가)이면 가중평균 대신 산술평균을 표시
@@ -3651,10 +3656,6 @@ Respond ONLY with:
         weightedAvg = aiEvaluated.reduce((s, i) =>
           s + i.annualBudget * (i.similarity / totalWeight), 0);
       }
-
-      // 범위 (Q1~Q3) — 표본이 충분(10건 이상)할 때만 통계적 의미 있음
-      const q1 = budgets[Math.floor(n * 0.25)];
-      const q3 = budgets[Math.floor(n * 0.75)];
 
       // 산술 평균 + 표준편차
       const sum = budgets.reduce((s, v) => s + (Number(v) || 0), 0);
@@ -3801,7 +3802,7 @@ Respond ONLY with:
         ${warningHTML}
 
         <div style="background:linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); border-radius:1.5rem; padding:2rem; margin-bottom:2rem; color:#fff; text-align:center; box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.3);">
-          <p style="font-size:0.875rem; font-weight:500; opacity:0.9; margin-bottom:0.5rem;">연간 적정 연구비 (중앙값 기준)</p>
+          <p style="font-size:0.875rem; font-weight:500; opacity:0.9; margin-bottom:0.5rem;">연간 적정 연구비 (중상위 추정 기준)</p>
           <h2 style="font-size:3rem; font-weight:900; margin-bottom:1rem; letter-spacing:-0.025em;">${fmtBudget(budgetRange.median)}</h2>
           <div style="display:inline-flex; gap:0.5rem; align-items:center; background:rgba(255,255,255,0.2); backdrop-filter:blur(4px); padding:0.6rem 1.2rem; border-radius:2rem; font-size:0.875rem; font-weight:700; border:1px solid rgba(255,255,255,0.3);">
             <iconify-icon icon="solar:shield-check-bold-duotone" style="font-size:1.1rem;"></iconify-icon>
@@ -3814,7 +3815,7 @@ Respond ONLY with:
           <div class="budget-kpi-card">
             <div class="budget-kpi-label">📅 총 연구비 추정 (${dYrs}년)</div>
             <div class="budget-kpi-value">${fmtBudget(totalMedian)}</div>
-            <div class="budget-kpi-sub">중앙값 × ${dYrs}년</div>
+            <div class="budget-kpi-sub">중상위 추정값 × ${dYrs}년</div>
           </div>
           <div class="budget-kpi-card">
             <div class="budget-kpi-label">📊 연구비 분포 범위</div>
