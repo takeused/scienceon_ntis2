@@ -3637,15 +3637,14 @@ Respond ONLY with:
         return null;
       }
 
-      // 중앙값 및 사분위
-      const rawMedian = n % 2 === 0
-        ? (budgets[n/2 - 1] + budgets[n/2]) / 2
-        : budgets[Math.floor(n/2)];
+      // 사분위
       const q1 = budgets[Math.floor(n * 0.25)];
       const q3 = budgets[Math.floor(n * 0.75)];
 
-      // 기준값: (중앙값 + Q3) / 2 → 중상위 추정 (충분한 편의를 가진 적정 예산)
-      const median = Math.round((rawMedian + q3) / 2);
+      // 기준값: max(산술평균, Q3) → R&D 예산 우편향 분포 특성 반영 (평균 > Q3 > 중앙값)
+      const sum0 = budgets.reduce((s, v) => s + v, 0);
+      const avg0 = sum0 / n;
+      const median = Math.round(Math.max(avg0, q3));
 
       // AI 유사도 가중 평균: similarity가 실제 AI 평가값(null이 아닌)인 항목만 반영
       // null(AI 미평가)이면 가중평균 대신 산술평균을 표시
